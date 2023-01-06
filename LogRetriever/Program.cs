@@ -55,6 +55,8 @@ namespace LogRetriever
                     Console.WriteLine("Restarting...");
                 }
             }
+
+            Publisher.PublishWeeklyRaidPerformance();
         }
 
     }

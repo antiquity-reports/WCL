@@ -23,9 +23,16 @@ SELECT
 	g.name,
 	g.server,
 	g.region,
-	r.lastStart
+    t.minimumTime
 FROM guilds g
-OUTER APPLY (SELECT MAX(start) lastStart FROM reports WHERE guildID = g.ID) r
+LEFT JOIN (SELECT region = 'US', minimumTime = MIN(start_US)
+FROM weeks WHERE start_us > DATEADD(WEEK, -5, GETDATE())
+UNION
+SELECT region = 'EU', minimumTime = MIN(start_eu)
+FROM weeks WHERE start_eu > DATEADD(WEEK, -5, GETDATE())
+UNION
+SELECT region = 'CN', minimumTime = MIN(start_eu)
+FROM weeks WHERE start_eu > DATEADD(WEEK, -5, GETDATE())) t ON g.region = t.region
 ORDER BY g.region DESC, g.name
 ").ToList();
             }
@@ -322,11 +329,11 @@ DELETE FROM reports WHERE ID = @reportID
             }
         }
 
-        internal static List<dynamic> getWeeklyRaidPerformance()
+        internal static List<IDictionary<string, object>> getWeeklyRaidPerformance()
         {
             using (var connection = new SqlConnection(CONNECTION_STRING))
             {
-                return connection.Query("SELECT * FROM WeeklyRaidPerformance").ToList();
+                return connection.Query("SELECT * FROM WeeklyRaidPerformance").Select(x => (IDictionary<string, object>)x).ToList();
             }
         }
 
