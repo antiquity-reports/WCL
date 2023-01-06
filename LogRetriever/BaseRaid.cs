@@ -21,26 +21,21 @@ namespace LogRetriever
             var guilds = DB.getGuilds();
 
             var guildCounter = 0;
+            var processTimeStart = DateTime.Now;
             foreach (var guild in guilds)
             {
                 guildCounter++;
-                var guildTimeStart = DateTime.Now;
-                Console.WriteLine($"Starting guild {guild.name} ({guildCounter} of {guilds.Count})...");
                 List<Report> reports = wcl.getReportsGuild(guild.name, guild.server, guild.region, new Dictionary<string, string> {
-                    {  "start", guild.lastStart != null ? (guild.lastStart + 1).ToString() : GetEpochMilliseconds(DateTime.Parse(_phaseLaunchUTC)).ToString() }
+                    {  "start", GetEpochMilliseconds(guild.minimumTime ?? DateTime.Parse(_phaseLaunchUTC)).ToString() }
                 });
 
                 var reportCounter = 0;
                 foreach (var report in reports.OrderBy(r => r.start))
                 {
                     reportCounter++;
-                    var reportTimeStart = DateTime.Now;
-                    Console.WriteLine($"Starting report ({reportCounter} of {reports.Count})...");
+                    Console.Write($"\rProcessing guild ({guildCounter} of {guilds.Count}) [{guild.name}] Report ({reportCounter} of {reports.Count}) - {DateTime.Now.Subtract(processTimeStart).ToString(@"hh\:mm\:ss")}           ");
                     ProcessReport(report, guild);
-                    Console.WriteLine($"Report Processed in {DateTime.Now.Subtract(reportTimeStart).ToString(@"mm\:ss")}");
                 }
-
-                Console.WriteLine($"Completed guild in {DateTime.Now.Subtract(guildTimeStart).ToString(@"mm\:ss")}");
             }
         }
 
@@ -339,7 +334,6 @@ AND (g.name = 'Antiquity' OR w.ID > 9)
             using (var progress = new ProgressBar())
             {
                 var reportCounter = 0;
-                Console.WriteLine("Adding Drums...");
                 foreach (var dbReport in reports)
                 {
                     reportCounter++;
