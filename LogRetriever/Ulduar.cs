@@ -4,2308 +4,405 @@ using System.Linq;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using System.Net;
+using Google.Apis.Sheets.v4.Data;
 
 namespace LogRetriever
 {
-    internal class Ulduar
+    internal class Ulduar : BaseRaid
     {
-//        static void Vezax()
-//        {
-//            var reportLines = new List<string>();
-
-//            foreach (var report in GetPTRLogs())
-//            {
-//                FightsReport fightsReport = new FightsReport
-//                {
-//                    fights = new List<Fight>(),
-//                };
-
-//                try
-//                {
-//                    fightsReport = WCLAPI.getReportFights(report);
-//                }
-//                catch (Exception)
-//                {
-
-//                }
-
-//                foreach (var fight in fightsReport.fights)
-//                {
-//                    switch (fight.boss)
-//                    {
-//                        case 755: //Vezax
-//                            var vezaxManaReport = WCLAPI.getReportTables("resources-gains", report, new Dictionary<string, string>
-//                                {
-//                                    { "start", fight.start_time.ToString() },
-//                                    { "end", fight.end_time.ToString() },
-//                                    { "abilityid", "100" }
-//                                });
-
-//                            foreach (var character in vezaxManaReport.resources)
-//                            {
-//                                if (character.gains > 0)
-//                                {
-//                                    var vezaxManaReportDetails = WCLAPI.getReportTables("resources-gains", report, new Dictionary<string, string>
-//                                {
-//                                    { "start", fight.start_time.ToString() },
-//                                    { "end", fight.end_time.ToString() },
-//                                    { "sourceid", character.id.ToString() },
-//                                    { "abilityid", "100" }
-//                                });
-
-//                                    foreach (var manaGain in vezaxManaReportDetails.resources)
-//                                    {
-//                                        var spell = $"https://www.wowhead.com/wotlk/spell={manaGain.guid},{manaGain.name}";
-//                                        if (!reportLines.Contains(spell) && manaGain.gains > 0)
-//                                            reportLines.Add(spell);
-//                                    }
-//                                }
-//                            }
-
-//                            break;
-//                        default:
-//                            break;
-//                    }
-//                }
-//            }
-
-
-//            using (var report = File.CreateText(@"D:\OneDrive\Documents\WoW Analysis\PTR Vezax Mana Gain.csv"))
-//            {
-//                report.WriteLine("URL,Name");
-
-//                foreach (var line in reportLines)
-//                    report.WriteLine(line);
-//            }
-//        }
-
-//        static void HardShit()
-//        {
-//            var reportLines = new List<List<string>>();
-//            var fightTimes = new List<DateTime>();
-
-//            foreach (var report in GetPTRLogs())
-//            {
-//                FightsReport fightsReport = new FightsReport
-//                {
-//                    fights = new List<Fight>(),
-//                };
-
-//                try
-//                {
-//                    fightsReport = WCLAPI.getReportFights(report);
-//                }
-//                catch (Exception)
-//                {
-
-//                }
-
-//                foreach (var fight in fightsReport.fights)
-//                {
-//                    if (fight.size != 25)
-//                        continue;
-
-//                    var includeReport = true;
-//                    var fightTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(fightsReport.start + fight.start_time);
-//                    var duration = new TimeSpan(0, 0, (fight.end_time - fight.start_time) / 1000);
-
-//                    switch (fight.boss)
-//                    {
-//                        case 756: //Yogg
-//                            var yoggBuffsReport = WCLAPI.getReportTables("buffs", report, new Dictionary<string, string>
-//                                {
-//                                    { "start", fight.start_time.ToString() },
-//                                    { "end", fight.end_time.ToString() },
-//                                });
-
-//                            var mimiron = yoggBuffsReport.auras.Any(e => e.guid == 62671); //Speed of Invention
-//                            var hodir = yoggBuffsReport.auras.Any(e => e.guid == 62650); //Fortitude of Frost
-//                            var thorim = yoggBuffsReport.auras.Any(e => e.guid == 62702); //Fury of the Storm
-//                            var freya = yoggBuffsReport.auras.Any(e => e.guid == 62670); //Resilience of Nature
-
-//                            if (mimiron || hodir || thorim || freya || duration.TotalSeconds < 480)
-//                                includeReport = false;
-
-//                            break;
-//                        case 757: //Algalon
-//                            if (duration.TotalSeconds < 210)
-//                                includeReport = false;
-
-//                            break;
-//                        default:
-//                            includeReport = false;
-//                            break;
-//                    }
-
-//                    var url = $"https://classic.warcraftlogs.com/reports/{report}";
-//                    var fightTimeString = $"\"{fightTime:f}\"";
-
-//                    if (includeReport && !fightTimes.Contains(fightTime) && !reportLines.Any(r => r.Contains(fight.name) && r.Contains(fightTimeString) && r.Contains(duration.ToString(@"m\:ss"))))
-//                    {
-//                        fightTimes.Add(fightTime);
-//                        reportLines.Add(new List<string>
-//                        {
-//                            url,
-//                            fight.name,
-//                            fightTimeString,
-//                            duration.ToString(@"m\:ss"),
-//                            fight.kill.ToString()
-//                        });
-//                    }
-//                }
-//            }
-
-//            using (var report = File.CreateText(@"D:\OneDrive\Documents\WoW Analysis\PTR YoggAlgalon.csv"))
-//            {
-//                report.WriteLine("URL,Name,Date,Duration,Kill");
-
-//                foreach (var line in reportLines)
-//                    report.WriteLine(String.Join(",", line));
-//            }
-//        }
-
-//        static void CrawlPTR()
-//        {
-//            var reportLines = new List<List<string>>();
-//            var fightTimes = new List<DateTime>();
-
-//            foreach (var report in GetPTRLogs())
-//            {
-//                FightsReport fightsReport = new FightsReport
-//                {
-//                    fights = new List<Fight>(),
-//                };
-
-//                try
-//                {
-//                    fightsReport = WCLAPI.getReportFights(report);
-//                }
-//                catch (Exception)
-//                {
-
-//                }
-
-//                foreach (var fight in fightsReport.fights)
-//                {
-//                    if (fight.size != 25 || !fight.kill)
-//                        continue;
-
-//                    var includeReport = true;
-//                    var fightTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(fightsReport.start + fight.start_time);
-
-//                    switch (fight.boss)
-//                    {
-//                        case 748: //Iron Council
-//                            var ironCouncilDeathsReport = WCLAPI.getReportEvents("deaths", report, new Dictionary<string, string>
-//                            {
-//                                { "start", fight.start_time.ToString() },
-//                                { "end", fight.end_time.ToString() },
-//                                { "hostility", "1" },
-//                            });
-
-//                            var deathCounter = 0;
-//                            foreach (var death in ironCouncilDeathsReport.events.OrderBy(e => e.timestamp))
-//                            {
-//                                deathCounter++;
-//                                var enemy = fightsReport.enemies.FirstOrDefault(e => e.id == death.targetID);
-
-//                                if (enemy == null)
-//                                    continue;
-
-//                                var isSteelbreaker = (enemy.guid == 32867);
-
-//                                if (deathCounter < 3 && isSteelbreaker)
-//                                {
-//                                    includeReport = false;
-//                                    break;
-//                                }
-//                            }
-
-//                            break;
-
-//                        case 751: //Hodir
-//                            if (fight.end_time - fight.start_time > 120000)
-//                                includeReport = false;
-//                            else
-//                            {
-//                                var hodirDamageTakenReport = WCLAPI.getReportTables("damage-taken", report, new Dictionary<string, string>
-//                                {
-//                                    { "start", fight.start_time.ToString() },
-//                                    { "end", fight.end_time.ToString() },
-//                                    { "by", "ability" },
-//                                });
-
-//                                var iceShards = hodirDamageTakenReport.entries.Any(e => e.guid == 62457);
-
-//                                if (!iceShards)
-//                                    includeReport = false;
-//                            }
-
-//                            break;
-
-//                        case 752: //Thorim
-//                            var thorimCastsReport = WCLAPI.getReportTables("casts", report, new Dictionary<string, string>
-//                                {
-//                                    { "start", fight.start_time.ToString() },
-//                                    { "end", fight.end_time.ToString() },
-//                                    { "by", "ability" },
-//                                    { "hostility", "1" },
-//                                });
-
-//                            var frostBoltVolley = thorimCastsReport.entries.Any(e => e.name == "Frostbolt Volley");
-
-//                            if (!frostBoltVolley)
-//                                includeReport = false;
-
-//                            break;
-
-//                        case 753: //Freya
-//                            var freyaDeathsReport = WCLAPI.getReportEvents("deaths", report, new Dictionary<string, string>
-//                            {
-//                                { "start", fight.start_time.ToString() },
-//                                { "end", fight.end_time.ToString() },
-//                                { "hostility", "1" },
-//                            });
-
-//                            var brightleafDeath = false;
-//                            var ironbranchDeath = false;
-//                            var stonebarkDeath = false;
-
-//                            var brightleaf = fightsReport.enemies.FirstOrDefault(e => e.guid == 32915 && e.fights.Select(f => f.id).Contains(fight.id));
-//                            var ironbranch = fightsReport.enemies.FirstOrDefault(e => e.guid == 32913 && e.fights.Select(f => f.id).Contains(fight.id));
-//                            var stonebark = fightsReport.enemies.FirstOrDefault(e => e.guid == 32914 && e.fights.Select(f => f.id).Contains(fight.id));
-
-//                            if (brightleaf == null || ironbranch == null || stonebark == null)
-//                            {
-//                                includeReport = false;
-//                                break;
-//                            }
-
-//                            foreach (var death in freyaDeathsReport.events.OrderBy(e => e.timestamp))
-//                            {
-//                                var enemy = fightsReport.enemies.FirstOrDefault(e => e.id == death.targetID);
-
-//                                if (enemy == null)
-//                                    continue;
-
-//                                brightleafDeath = (death.targetID == brightleaf.id);
-//                                ironbranchDeath = (death.targetID == ironbranch.id);
-//                                stonebarkDeath = (death.targetID == stonebark.id);
-//                            }
-
-//                            if (brightleafDeath || ironbranchDeath || stonebarkDeath)
-//                                includeReport = false;
-
-//                            break;
-//                        case 754: //Mimiron
-//                            var mimironCastsReport = WCLAPI.getReportTables("casts", report, new Dictionary<string, string>
-//                                {
-//                                    { "start", fight.start_time.ToString() },
-//                                    { "end", fight.end_time.ToString() },
-//                                    { "by", "ability" },
-//                                    { "hostility", "1" },
-//                                });
-
-//                            var frostBomb = mimironCastsReport.entries.Any(e => e.name == "Frost Bomb");
-
-//                            if (!frostBomb)
-//                                includeReport = false;
-
-//                            break;
-//                        case 756: //Yogg
-//                            var yoggBuffsReport = WCLAPI.getReportTables("buffs", report, new Dictionary<string, string>
-//                                {
-//                                    { "start", fight.start_time.ToString() },
-//                                    { "end", fight.end_time.ToString() },
-//                                });
-
-//                            var mimiron = yoggBuffsReport.auras.Any(e => e.guid == 62671); //Speed of Invention
-//                            var hodir = yoggBuffsReport.auras.Any(e => e.guid == 62650); //Fortitude of Frost
-//                            var thorim = yoggBuffsReport.auras.Any(e => e.guid == 62702); //Fury of the Storm
-//                            var freya = yoggBuffsReport.auras.Any(e => e.guid == 62670); //Resilience of Nature
-
-//                            if (mimiron || hodir || thorim || freya)
-//                                includeReport = false;
-
-//                            break;
-//                        case 757: //Algalon
-//                            break;
-//                        default:
-//                            includeReport = false;
-//                            break;
-//                    }
-
-//                    var url = $"https://classic.warcraftlogs.com/reports/{report}";
-//                    var fightTimeString = $"\"{fightTime:f}\"";
-//                    var duration = new TimeSpan(0, 0, (fight.end_time - fight.start_time) / 1000).ToString(@"m\:ss");
-
-//                    if (includeReport && !fightTimes.Contains(fightTime) & !reportLines.Any(r => r.Contains(fight.name) && r.Contains(fightTimeString) && r.Contains(duration)))
-//                    {
-//                        fightTimes.Add(fightTime);
-//                        reportLines.Add(new List<string>
-//                        {
-//                            url,
-//                            fight.name,
-//                            fightTimeString,
-//                            duration
-//                        });
-//                    }
-//                }
-//            }
-
-//            using (var report = File.CreateText(@"D:\OneDrive\Documents\WoW Analysis\PTR HM Kills.csv"))
-//            {
-//                report.WriteLine("URL,Name,Date,Duration");
-
-//                foreach (var line in reportLines)
-//                    report.WriteLine(String.Join(",", line));
-//            }
-//        }
-
-//        static List<string> GetPTRLogs()
-//        {
-//            return new List<string>
-//            {
-//                //"GcYNV9QznjFCTfWh",
-//                //"Kyz7b6xdckA3PW2F",
-//                //"RDTcMn7gj21wYbPG",
-//                //"Admg8k3DnF4B6JXw",
-//                //"6ytgLkafGTWcR8Hq",
-//                //"wWzbLDBQNkfyV3xm",
-//                //"HGpj41Fb3vNhJcKk",
-//                //"aRwyZj1fN6hVptTz",
-//                //"M7tjbyRdN6BYmzfk",
-//                //"L6BXRKamQMFxDkt2",
-//                //"QcBm3y9gT4KdnGzq",
-//                //"KthXzCcM2RL3T8wH",
-//                //"2yF4jQDYwmVvaWXC",
-//                //"Kb1nfzHr3ygX9ZTP",
-//                //"dFWzp8P9xjC1bhGT",
-//                //"8AV3FGX67jpN1DTY",
-//                //"63TdgCMQ4YafHhqB",
-//                //"vZLP6cakyjQ8Gn27",
-//                //"CRD2b6fzqx1gtKvQ",
-//                //"J7xAfkpQRXT6G81K",
-//                //"789h4DRKGMqmjLN2",
-//                //"DavJw1XRcp4tgYMz",
-//                //"F8jCzTBMrVQw3GK6",
-//                //"T8FGapKWdLrDnNt3",
-//                //"TGvnH2BwXZ8pjyYJ",
-//                //"B1vCYnPWHcpxJ3T7",
-//                //"g6aLjKPxDhXbHJ84",
-//                //"ftg8XZ1YCDd7Kh4v",
-//                //"FDxgQHrjGABJadZ1",
-//                //"tR1ZzH9crG23CpPg",
-//                //"vyjAYGLB2n93w7Qq",
-//                //"xHZAtK93JrRM1yDk",
-//                //"KYkF2NXnxafGR7Wz",
-//                //"d63tZgfvwNrP8YMB",
-//                //"ya93PRLwVJjfY1hH",
-//                //"TK16LkwG2hABtrnV",
-//                //"ZXVcHFzvRpDa3n4K",
-//                //"FaWYRZd6x1nvqgN4",
-//                //"9tr1xpH6cW8PdhVL",
-//                //"PCkmLTNcM8naf93v",
-//                //"KCqz63GTbd7xYDM8",
-//                //"GjAgrv8HC2n3fMkh",
-//                //"mwVL4HP2QXvZTfFp",
-//                //"FMfQabY7P94DJWrj",
-//                //"jVLJwWxv6aAbCX42",
-//                //"32HR86XBnGNZwMmg",
-//                //"TPVWmqtaK9HDpjbX",
-//                //"vz7WdB2jNAxYtkRM",
-//                //"2MLqPfFayRvmjrBW",
-//                //"4tfMxqaQNKHw6WL2",
-//                //"aYb4DKhrPFRMQydA",
-//                //"rkwYtCxA6pQDR38K",
-//                //"4wTtK3vp7qkhrBV2",
-//                //"q9jTp76tkGWV14Jh",
-//                //"FYVL9TMchjngNvA2",
-//                //"2rdpXtTw9gyR3KCP",
-//                //"dxLp7tzcFAr4JX3v",
-//                //"4V3WgZtxjDch6vbL",
-//                //"8HTYkwvLDg1ZxQMa",
-//                //"qkWCPABhc9XfFgKR",
-//                //"hH1J4QdLv8wCMNf7",
-//                //"MpWPdGBf3Cg9bTAK",
-//                //"DrQ9jaMXgmvTCq37",
-//                //"GWmMR68413t7xkFz",
-//                //"AdgRkm3xLvVf2T6X",
-//                //"2mgTb1QwafLKZ8cP",
-//                //"k1YRDXHhzAP8VjJw",
-//                //"7y8fcAXpjtKbaVk4",
-//                //"KzrJT7HZmR1jt6Xg",
-//                //"WnjtNb4MJTAGqkFh",
-//                //"QbDrm8kMNp6CwVa3",
-//                //"nbjvzwapCV3WNGMf",
-//                //"KpzWv6CXkZLMj9A8",
-//                //"2CWg41P7NanvZTfR",
-//                //"nf9mk67cFB1y8hCW",
-//                //"JB184FCPrYALhwmj",
-//                //"61xQjY3KDybPV4c2",
-//                //"9caQHqm8FZyrdptz",
-//                //"fzK8NchP76jy1WZ4",
-//                //"nzRXZq7Qv96Yjhy3",
-//                //"HaLCK3YzkFcmd7Ah",
-//                //"PVmbg2Q3Zt9aCwK6",
-//                //"KWk8MbNngQPRTzvB",
-//                //"fjqW18whMY4byLcC",
-//                //"kMbyf7KPwmjCtJV2",
-//                //"zPFfJGWkCVqd7jpZ",
-//                //"d4QvLPmXwyA9NxjG",
-//                //"yPpjhWHvDJgFwmRY",
-//                //"6NHAXKBRhgV4rqC7",
-//                //"tLcqKm86nHzkgGb9",
-//                //"YMz4DKbGn2ygxmTc",
-//                //"Q2wHX7a1nxpfhyc8",
-//                //"QYyfr7K6tH2cpR9V",
-//                //"jfWzydK29pkr7mTZ",
-//                //"QBLxt3RhrYzpKZV1",
-//                //"aRzvjXA3Jn7mrgWy",
-//                //"B2rDKLQjNqhbRWFP",
-//                //"AmCVLHzKDvwnchW8",
-//                //"QzZWrDmFy3GTHh4C",
-//                //"HLrxAm8fFY7qQkNh",
-//                //"HLrxAm8fFY7qQkNh",
-//                //"3apbynmY6RrX72kL",
-//                //"Z1hJWBfxgApDHkNd",
-//                //"kZcAKG6QJx8hjFNf",
-//                //"tkwyzZVAGBa7NfPv",
-//                //"b9MmjVWqwCNX32az",
-//                //"2rYDFTm9a4VyAXG8",
-//                //"nvTAa2D483jgRXpV",
-//                //"jNRnqz3DLTCWbkAZ",
-//                //"4nNywxHFMLVkzgAc",
-//                //"KyPwpFHvQcGfx94a",
-//                //"xrW1FX4Jdz9MNwQG",
-//                //"mXYZWTcVn9p7bLhJ",
-//                //"bztQVZfvRy98akLF",
-//                //"rVamY6KgNGHqFDfZ",
-//                //"WxML8JjA74fdHhPa",
-//                //"CdxhMyt42Nc81qTB",
-//                //"xpXVqwbfz2tKNgd3",
-//                //"Ng7VZLtRQqp6YHJh",
-//                //"hqzDZ9nf7pyGTJY6",
-//                //"GChF1Z8KyWQvf64X",
-//                //"FP1Xg2DJmK9phBvj",
-//                //"GxNyaDp6wtQdhMR8",
-//                //"4ZzTb9wMhAxktvyK",
-//                //"f6LTQ8DkNC3Vj2PJ",
-//                //"Ldt74HJY9RaD3hQZ",
-//                //"Mv3ktWagD74hRBTA",
-//                //"VhPnptmkCRGQ7xgd",
-//                //"3HqGdvygh64Y2JTC",
-//                //"NKy3fLxMbwhFPYag",
-//                //"KB7WfxPkCyTdvab4",
-//                //"vx9Y3GKMWAZnJkPp",
-//                //"BcFGAd8kD6hf4YR1",
-//                //"hnaX2k4DQyrN7vGT",
-//                //"YkTzcpbPmqtd4n3D",
-//                //"RG1aW4M9kTXdycgA",
-//                //"LKWj9PCfM1gbRHXx",
-//                //"7BNJ3kCpnFbZ6qyT",
-//                //"GpNJkxAqbYw2yTBZ",
-//                //"rDb9PMgjJCn2Ly8d",
-//                //"2XH6nZ4BWqDcAKpr",
-//                //"8vLrYWHXjCtJbxdA",
-//                //"1fmKhMLvBA73t9R4",
-//                //"1zMNT3Hc6fPXGjqF",
-//                //"FRPNf9y4VG6nMtvT",
-//                //"cw8QMzF13AanBgmJ",
-//                //"TB8Axk4Gc6ayKmqv",
-//                //"p8GMk4KzcvmrfaVP",
-//                //"BpXTtnNa2fKx9Gjw",
-//                //"TAtF8aBydY3jgKPh",
-//                //"6k3bYjBthDVp1NA7",
-//                //"Qa2DZCb1jWcdzJxr",
-//                //"Xcj9b6fzLaPMJNrn",
-//                //"yz4PB3RCqhvw2GfX",
-//                //"DMrPtXZ2YQfwk91x",
-//                //"nR8NwYKL4V1hg6DC",
-//                //"bdLrwHxYymCFaWtq",
-//                //"LZXMfNbRvxcky68r",
-//                //"8HMZP67z19Y2DvrB",
-//                //"HX47cYVjbqLwQxC1",
-//                //"jPDbA6gh7FJwH2yf",
-//                //"Pn9Cb81yHkD7T6rg",
-//                //"b46RwHNnXg7p3Mzk",
-//                //"1AQTRtqbCh8LB3rp",
-//                //"zgXJnb4RcWAMkPty",
-//                //"CK7mPFrW4wtRvdBf",
-//                //"BKtJ1dW7rMhzTkZa",
-//                //"Tcga3G2HwAmrVkCM",
-//                //"zbYZP9kmqtKX8Qga",
-//                //"WryBpL9d3DPTchYK",
-//                //"MbKrQPTw1qNDn3tA",
-//                //"f4aKqBmxAZH8pvQ3",
-//                //"QYnwDzF3h4Ax8mbG",
-//                //"XJqK7bG2DCAdmQw6",
-//                //"HZdPr1Rk4TDJx8F3",
-//                //"ac3rRbTXD2kzJfKg",
-//                //"c49HJvrdKXY6QzDq",
-//                //"72jNghXJtLw9zrqH",
-//                //"9rpwRPtd42g1yhMH",
-//                //"VqCdfcZGBm6Y2htP",
-//                //"WZNp3t7vD9jyPgc6",
-//                //"4j9VxPyHLkWcXfpM",
-//                //"kxzPGVF27aHRd361",
-//                //"jWx2B9PMD4QkzKpV",
-//                //"cQpAJfDTZv4hKXG8",
-//                //"2cBpvRQLbqydt4MD",
-//                //"f1C83Q6jM4V9KXmt",
-//                //"gn8kM6L2ma9R7Pvq",
-//                //"rCDgtBb2JzFa7ZhX",
-//                //"Ak1qpZdNYRj4c69M",
-//                //"87x2kXLY96GaRDjn",
-//                //"phNV6DZQMH9WxCf3",
-//                //"73xMv9HdfZWbgXty",
-//                //"wvdVQN3rZbqafL7G",
-//                //"qDdKRAbakNw62XQ1",
-//                //"BfKxwDacA1bHjdVv",
-//                //"63qyg9TAxJ4QMvYc",
-//                //"1DFzQJK4mpBb3RGV",
-//                //"vrgFhzm2cZYdH7VB",
-//                //"X4B82bwqFCvJGa3y",
-//                //"X4B82bwqFCvJGa3y",
-//                //"GWXfCb1qtwAmYJ2r",
-//                //"cbRtWnhJKwPfZydk",
-//                //"gKXMtcp6bCZdNyTv",
-//                //"JqtKBkFMvra62d1j",
-//                //"cZPnWR1j4Yfy69zh",
-//                //"yHCbzGxjwtdPDpT8",
-//                //"dXtzpbNLVraQ7C9F",
-//                //"vFTKWR6XM24H3Gtm",
-//                //"xJTkMtL1vwrYcdQB",
-//                //"a3t628Cj4nPGMv1h",
-//                //"hfD8vTHcFYmXPWtJ",
-//                //"L1Z2rVAgqtvTp6NC",
-//                //"Vw8cH3xknPgjLAJm",
-//                //"NQH9nRFP6zD8rvKT",
-//                //"zc4aYFy62xP39RKX",
-//                //"bKh2N9YxTW1fGMDz",
-//                //"2KFYwLCjvTzH9ADR",
-//                //"P2YtDX4MRhcnJvxT",
-//                //"wFz1Mg2K74vtnaHh",
-//                //"3tZbyaj4J1wWgpYK",
-//                //"qCxapLvBDYnTc9Kz",
-//                //"kRhT7DFW4Z3HKf2y",
-//                //"QrtZbhg7FAY3nGq1",
-//                //"ZCcpB6dTr3WPhvQa",
-//                //"JAGRPzyB3jY6QZVL",
-//                //"n6w3r8KTLQCPNgyM",
-//                //"At7g1WFhGTN9VwXP",
-//                //"A73xNHKazcL9Vrfn",
-//                //"GMZQLzYdvw4XFjDk",
-//                //"cqQ2kyAHngBtmFMb",
-//                //"8371LFcMyz6tbh9B",
-//                //"DdGBnv1T9JxQNmAZ",
-//                //"P3CkcF4v9JQwfr1x",
-//                //"XGfFHnWg8DzBTvPh",
-//                //"gF2cHkfjGAV74CXB",
-//                //"XKMnZjYBdtDFq36a",
-//                //"KtyWAcXLqafNF1vB",
-//                //"3PLHnXmW2KRMp6dQ",
-//                //"vN8VPcwjABh7yxHZ",
-//                //"TbDq8kFWMwd4K6ap",
-//                //"FDhb7pTcjazVBr2d",
-//                //"YmFpN4KTBRMJdjWP",
-//                //"MmD9nA1pzgfW3bwt",
-//                //"PN78Gw2fWRaqzZmy",
-//                //"Mady1kbCR6DQtTqf",
-//                //"JDgNzvfHqxRh7AcP",
-//                //"yczF6ZBtK3q8J12C",
-//                //"kJNVx7jbXZWYM3qg",
-//                //"wcLdnBCfgXqzk2J6",
-//                //"4zmc7RF3qyJBD1A2",
-//                //"1KjZrXa49hAcgxMk",
-//                //"n6tf8GBVkgJLyjCm",
-//                //"pnfqhW3HXA6B2LxG",
-//                //"A72gWHc3t4Tn9vpb",
-//                //"dyRDVPfbZQhNv6mp",
-//                //"d274nzMPy3bLkF1h",
-//                //"ZL682RCfdqBwynkW",
-//                //"2QJ13AbKxzmdLykC",
-//                //"3LgbFwmR8rWfkhK6",
-//                //"B7NHhrmdWjRJFftV",
-//                //"BXf468DxcW2R7Pgr",
-//                //"z1mMf8hcGRL7w6nZ",
-//                //"v83QfRqzgY6JA4wP",
-//                //"tvTCAJbRwHxfN7FP",
-//                //"LdFR1vt4Mf2VhCrw",
-//                //"gCZb7Vy41f9jn2Ww",
-//                //"nhDRQPBJGadz2MV6",
-//                //"JfaNFBxKkPqRny1b",
-//                //"R3Y1Fj2yhaxGN6AJ",
-//                //"PFGLbdMpzq9yZH8g",
-//                //"1QFKxrBYCnkw2bTM",
-//                //"HVL2bytj8Dg9P4WR",
-//                //"7aTywGXV3kWKfhpm",
-//                //"wC8t4RqG9yMxBdap",
-//                //"t19zhNgkwpPy7HJn",
-//                //"t3rcWzyfpaJQw4bC",
-//                //"LVB4YWf3GnKrdxJz",
-//                //"8FbzgB1X2aTyGZHq",
-//                //"WBavkLFHnmjdxZfy",
-//                //"tm2CnjPHMZkyD4VK",
-//                //"aVmBvN7d32pTFbzA",
-//                //"PZGJQFrgTB9zpCf7",
-//                //"C3gGMbzhARn8TJy1",
-//                //"KVPWLrYwqtmpMZAQ",
-//                //"f4wX2a1JZthrBMAV",
-//                //"gBF7NjP6ta3M8Qh9",
-//                //"6BHW2trTkLdz8vwC",
-//                //"f8KdZtqzkAa4nBjJ",
-//                //"GWRFLx8kDgdP2m7q",
-//                //"xCP6wMLgy4NpbVZ2",
-//                //"k9RXKbHrfjA8xNyM",
-//                //"Wjna3M6gT97pyVxN",
-//                //"p1vy4TaxJYgHWnqf",
-//                //"wHgaNdYG7Ky9WQvL",
-//                //"6fA2kv4y1bXTPRzL",
-//                //"CbpGnK8MP6YR7Lw9",
-//                //"V8pMjYTxbLq9NrHh",
-//                //"N4p9aMdQLJWBv8Vg",
-//                //"RQqp83X16HjfCgt2",
-//                //"X4B82bwqFCvJGa3y",
-//                //"GWXfCb1qtwAmYJ2r",
-//                //"cbRtWnhJKwPfZydk",
-//                //"gKXMtcp6bCZdNyTv",
-//                //"JqtKBkFMvra62d1j",
-//                //"cZPnWR1j4Yfy69zh",
-//                //"yHCbzGxjwtdPDpT8",
-//                //"dXtzpbNLVraQ7C9F",
-//                //"vFTKWR6XM24H3Gtm",
-//                //"xJTkMtL1vwrYcdQB",
-//                //"a3t628Cj4nPGMv1h",
-//                //"hfD8vTHcFYmXPWtJ",
-//                //"L1Z2rVAgqtvTp6NC",
-//                //"Vw8cH3xknPgjLAJm",
-//                //"NQH9nRFP6zD8rvKT",
-//                //"zc4aYFy62xP39RKX",
-//                //"bKh2N9YxTW1fGMDz",
-//                //"2KFYwLCjvTzH9ADR",
-//                //"P2YtDX4MRhcnJvxT",
-//                //"wFz1Mg2K74vtnaHh",
-//                //"3tZbyaj4J1wWgpYK",
-//                //"qCxapLvBDYnTc9Kz",
-//                //"kRhT7DFW4Z3HKf2y",
-//                //"QrtZbhg7FAY3nGq1",
-//                //"ZCcpB6dTr3WPhvQa",
-//                //"JAGRPzyB3jY6QZVL",
-//                //"n6w3r8KTLQCPNgyM",
-//                //"At7g1WFhGTN9VwXP",
-//                //"A73xNHKazcL9Vrfn",
-//                //"GMZQLzYdvw4XFjDk",
-//                //"cqQ2kyAHngBtmFMb",
-//                //"8371LFcMyz6tbh9B",
-//                //"DdGBnv1T9JxQNmAZ",
-//                //"P3CkcF4v9JQwfr1x",
-//                //"XGfFHnWg8DzBTvPh",
-//                //"gF2cHkfjGAV74CXB",
-//                //"XKMnZjYBdtDFq36a",
-//                //"KtyWAcXLqafNF1vB",
-//                //"3PLHnXmW2KRMp6dQ",
-//                //"vN8VPcwjABh7yxHZ",
-//                //"TbDq8kFWMwd4K6ap",
-//                //"FDhb7pTcjazVBr2d",
-//                //"YmFpN4KTBRMJdjWP",
-//                //"MmD9nA1pzgfW3bwt",
-//                //"PN78Gw2fWRaqzZmy",
-//                //"Mady1kbCR6DQtTqf",
-//                //"JDgNzvfHqxRh7AcP",
-//                //"yczF6ZBtK3q8J12C",
-//                //"kJNVx7jbXZWYM3qg",
-//                //"wcLdnBCfgXqzk2J6",
-//                //"4zmc7RF3qyJBD1A2",
-//                //"1KjZrXa49hAcgxMk",
-//                //"n6tf8GBVkgJLyjCm",
-//                //"pnfqhW3HXA6B2LxG",
-//                //"A72gWHc3t4Tn9vpb",
-//                //"dyRDVPfbZQhNv6mp",
-//                //"d274nzMPy3bLkF1h",
-//                //"ZL682RCfdqBwynkW",
-//                //"2QJ13AbKxzmdLykC",
-//                //"3LgbFwmR8rWfkhK6",
-//                //"B7NHhrmdWjRJFftV",
-//                //"BXf468DxcW2R7Pgr",
-//                //"z1mMf8hcGRL7w6nZ",
-//                //"v83QfRqzgY6JA4wP",
-//                //"tvTCAJbRwHxfN7FP",
-//                //"LdFR1vt4Mf2VhCrw",
-//                //"gCZb7Vy41f9jn2Ww",
-//                //"nhDRQPBJGadz2MV6",
-//                //"JfaNFBxKkPqRny1b",
-//                //"R3Y1Fj2yhaxGN6AJ",
-//                //"PFGLbdMpzq9yZH8g",
-//                //"1QFKxrBYCnkw2bTM",
-//                //"HVL2bytj8Dg9P4WR",
-//                //"7aTywGXV3kWKfhpm",
-//                //"wC8t4RqG9yMxBdap",
-//                //"t19zhNgkwpPy7HJn",
-//                //"t3rcWzyfpaJQw4bC",
-//                //"LVB4YWf3GnKrdxJz",
-//                //"8FbzgB1X2aTyGZHq",
-//                //"WBavkLFHnmjdxZfy",
-//                //"tm2CnjPHMZkyD4VK",
-//                //"aVmBvN7d32pTFbzA",
-//                //"PZGJQFrgTB9zpCf7",
-//                //"C3gGMbzhARn8TJy1",
-//                //"KVPWLrYwqtmpMZAQ",
-//                //"f4wX2a1JZthrBMAV",
-//                //"gBF7NjP6ta3M8Qh9",
-//                //"6BHW2trTkLdz8vwC",
-//                //"f8KdZtqzkAa4nBjJ",
-//                //"GWRFLx8kDgdP2m7q",
-//                //"xCP6wMLgy4NpbVZ2",
-//                //"k9RXKbHrfjA8xNyM",
-//                //"Wjna3M6gT97pyVxN",
-//                //"p1vy4TaxJYgHWnqf",
-//                //"wHgaNdYG7Ky9WQvL",
-//                //"6fA2kv4y1bXTPRzL",
-//                //"CbpGnK8MP6YR7Lw9",
-//                //"V8pMjYTxbLq9NrHh",
-//                //"N4p9aMdQLJWBv8Vg",
-//                //"RQqp83X16HjfCgt2",
-//                //"X4B82bwqFCvJGa3y",
-//                //"GWXfCb1qtwAmYJ2r",
-//                //"cbRtWnhJKwPfZydk",
-//                //"gKXMtcp6bCZdNyTv",
-//                //"JqtKBkFMvra62d1j",
-//                //"cZPnWR1j4Yfy69zh",
-//                //"yHCbzGxjwtdPDpT8",
-//                //"dXtzpbNLVraQ7C9F",
-//                //"vFTKWR6XM24H3Gtm",
-//                //"xJTkMtL1vwrYcdQB",
-//                //"a3t628Cj4nPGMv1h",
-//                //"hfD8vTHcFYmXPWtJ",
-//                //"L1Z2rVAgqtvTp6NC",
-//                //"Vw8cH3xknPgjLAJm",
-//                //"NQH9nRFP6zD8rvKT",
-//                //"zc4aYFy62xP39RKX",
-//                //"bKh2N9YxTW1fGMDz",
-//                //"2KFYwLCjvTzH9ADR",
-//                //"P2YtDX4MRhcnJvxT",
-//                //"wFz1Mg2K74vtnaHh",
-//                //"3tZbyaj4J1wWgpYK",
-//                //"qCxapLvBDYnTc9Kz",
-//                //"kRhT7DFW4Z3HKf2y",
-//                //"QrtZbhg7FAY3nGq1",
-//                //"ZCcpB6dTr3WPhvQa",
-//                //"JAGRPzyB3jY6QZVL",
-//                //"n6w3r8KTLQCPNgyM",
-//                //"At7g1WFhGTN9VwXP",
-//                //"A73xNHKazcL9Vrfn",
-//                //"GMZQLzYdvw4XFjDk",
-//                //"cqQ2kyAHngBtmFMb",
-//                //"8371LFcMyz6tbh9B",
-//                //"DdGBnv1T9JxQNmAZ",
-//                //"P3CkcF4v9JQwfr1x",
-//                //"XGfFHnWg8DzBTvPh",
-//                //"gF2cHkfjGAV74CXB",
-//                //"XKMnZjYBdtDFq36a",
-//                //"KtyWAcXLqafNF1vB",
-//                //"3PLHnXmW2KRMp6dQ",
-//                //"vN8VPcwjABh7yxHZ",
-//                //"TbDq8kFWMwd4K6ap",
-//                //"FDhb7pTcjazVBr2d",
-//                //"YmFpN4KTBRMJdjWP",
-//                //"MmD9nA1pzgfW3bwt",
-//                //"PN78Gw2fWRaqzZmy",
-//                //"Mady1kbCR6DQtTqf",
-//                //"JDgNzvfHqxRh7AcP",
-//                //"yczF6ZBtK3q8J12C",
-//                //"kJNVx7jbXZWYM3qg",
-//                //"wcLdnBCfgXqzk2J6",
-//                //"4zmc7RF3qyJBD1A2",
-//                //"1KjZrXa49hAcgxMk",
-//                //"n6tf8GBVkgJLyjCm",
-//                //"pnfqhW3HXA6B2LxG",
-//                //"A72gWHc3t4Tn9vpb",
-//                //"dyRDVPfbZQhNv6mp",
-//                //"d274nzMPy3bLkF1h",
-//                //"ZL682RCfdqBwynkW",
-//                //"2QJ13AbKxzmdLykC",
-//                //"3LgbFwmR8rWfkhK6",
-//                //"B7NHhrmdWjRJFftV",
-//                //"BXf468DxcW2R7Pgr",
-//                //"z1mMf8hcGRL7w6nZ",
-//                //"v83QfRqzgY6JA4wP",
-//                //"tvTCAJbRwHxfN7FP",
-//                //"LdFR1vt4Mf2VhCrw",
-//                //"gCZb7Vy41f9jn2Ww",
-//                //"nhDRQPBJGadz2MV6",
-//                //"JfaNFBxKkPqRny1b",
-//                //"R3Y1Fj2yhaxGN6AJ",
-//                //"PFGLbdMpzq9yZH8g",
-//                //"1QFKxrBYCnkw2bTM",
-//                //"HVL2bytj8Dg9P4WR",
-//                //"7aTywGXV3kWKfhpm",
-//                //"wC8t4RqG9yMxBdap",
-//                //"t19zhNgkwpPy7HJn",
-//                //"t3rcWzyfpaJQw4bC",
-//                //"LVB4YWf3GnKrdxJz",
-//                //"8FbzgB1X2aTyGZHq",
-//                //"WBavkLFHnmjdxZfy",
-//                //"tm2CnjPHMZkyD4VK",
-//                //"aVmBvN7d32pTFbzA",
-//                //"PZGJQFrgTB9zpCf7",
-//                //"C3gGMbzhARn8TJy1",
-//                //"KVPWLrYwqtmpMZAQ",
-//                //"f4wX2a1JZthrBMAV",
-//                //"gBF7NjP6ta3M8Qh9",
-//                //"6BHW2trTkLdz8vwC",
-//                //"f8KdZtqzkAa4nBjJ",
-//                //"GWRFLx8kDgdP2m7q",
-//                //"xCP6wMLgy4NpbVZ2",
-//                //"k9RXKbHrfjA8xNyM",
-//                //"Wjna3M6gT97pyVxN",
-//                //"p1vy4TaxJYgHWnqf",
-//                //"wHgaNdYG7Ky9WQvL",
-//                //"6fA2kv4y1bXTPRzL",
-//                //"CbpGnK8MP6YR7Lw9",
-//                //"V8pMjYTxbLq9NrHh",
-//                //"N4p9aMdQLJWBv8Vg",
-//                //"RQqp83X16HjfCgt2",
-//                //"pVjndqYCFHzQhcJv",
-//                //"KaCYy9QMTAPv1WLt",
-//                //"39CtpjKzyAMPB2Wq",
-//                //"4GrgHPYNa3ptzMcZ",
-//                //"gmPBajyq7Gp4nt2W",
-//                //"qVzrd1BvaX98Nk2g",
-//                //"zBZaNmv9Y1pKARj2",
-//                //"Q8Gj42Yf3cHpANWn",
-//                //"wqjdmLPT6knW9cpV",
-//                //"ZqTc9hBVYzbtLXwG",
-//                //"RFvJ6xWaCpfPTBb2",
-//                //"7kZdybQDrwKYh61z",
-//                //"xagYwfN17D6ryBJH",
-//                //"DAB2kQ6HWyLG7vq4",
-//                //"qFDrzvkwm1HYBtyX",
-//                //"aJWfZYGnhQ8Lc261",
-//                //"W8FgjNb7RkqZrywd",
-//                //"p3NjGXq9WhAKT6cD",
-//                //"ryGp8RhkW9dYPaL1",
-//                //"pbJV6kLwCMBTPF7Y",
-//                //"KrcQbgNRJfB89Tjy",
-//                //"XKd7hT2A6BHNQxzV",
-//                //"wJA8KYW1xVmT9Cv7",
-//                //"BxkqLrJVNWH6pzRa",
-//                //"B7VJ3vcHqT1CgYFK",
-//                //"rNy2nP8VcdCxqMQF",
-//                //"mfDAadxB1JK8TVy3",
-//                //"TKjD7rC3YLF1nt9G",
-//                //"DFJQVC6hj8aP7N9t",
-//                //"8NbyRrXQzpABKhc3",
-//                //"tXFAmTD6xQKRfNW8",
-//                //"2aDGmvcwNx4Vfn3b",
-//                //"tJjrYDvHkhyVZwXF",
-//                //"f9rpWXwvcabk2BhA",
-//                //"XBZKVG2f3zNh6PqL",
-//                //"NHTnDfCQbp3xAG94",
-//                //"H2zjdcRDx3rJqvyY",
-//                //"1KNcXRCT6kJbWxhQ",
-//                //"wBh4xgqFJXHCW7QT",
-//                //"fcp9L41bJMjaH7Fg",
-//                //"Bk3p2yrZhbLG1Fnw",
-//                //"xRQ7AtmDMHY9TwBC",
-//                //"ngdTW7GaybCD92Ff",
-//                //"Cnfc73MYwHPv4Ba9",
-//                //"Y162zAvfaZwkKVFx",
-//                //"vq4rJaxy3tLD1n2K",
-//                //"H9BY3G6hrxaPCfcW",
-//                //"3MpW2rdG7TDvqn9y",
-//                //"mHCWg3k7Aaq6cN1T",
-//                //"2W79vkcBTNnPzwda",
-//                //"qRcJa4VbCLxBYGM2",
-//                //"g73NMdRHK4qGhDk1",
-//                //"kA4BmD7bCVGpgQJ6",
-//                //"3NHDT9tX4M8jycvQ",
-//                //"apGWTRJHnPD9dgb2",
-//                //"8RwVYzbmqahHF4Xd",
-//                //"Dh3Bp8xtJrCmdYGa",
-//                //"WMJXh4b6avKnPYCH",
-//                //"TjpJLha4wNtrg7Dd",
-//                //"NYvKqj9HPD4LcyMx",
-//                //"9ZvzMxdjHBc6RW7w",
-//                //"PW4aYgx3r8cFLCfz",
-//                //"6xZtBH8T7pdfNJna",
-//                //"6H2VFRwKj7rmLJAz",
-//                //"jRkY8qCFywvV6pHZ",
-//                //"MynmtWFcrjw9BGRQ",
-//                //"MQmy1GdtTcphBHxb",
-//                //"F61V39dY2qzWvBr4",
-//                //"BN8z1TCVAdhxZXFb",
-//                //"Xnhvq4YHPgyRDNWG",
-//                //"rWRYCJAH7kVwDKx8",
-//                //"dx6vVpGz1PjhQWbD",
-//                //"RW91r6ph7PgBM2CH",
-//                //"CR9r6TvYX7JLNabK",
-//                //"zCgqbG8xPYR4m9hc",
-//                //"bAXtvPKxVwaZFTd4",
-//                //"gPYRDnBGZHt9LMrw",
-//                //"9tjKBJw3vRa2HXFp",
-//                //"BHG3DRQ2pNhJFn8w",
-//                //"LYG2Tz6KvtNZVJMm",
-//                //"GAVJdLazpjfrYRZm",
-//                //"ntCzykQj1Ym8JFWd",
-//                //"n3yBdkp67PzhXgaK",
-//                //"BWRnPmKaT9D4qhb3",
-//                //"3cRkwhxNnb62D9Kt",
-//                //"TWvk7xpD6JPYXhnV",
-//                //"AgNbGY48KqPyfZLM",
-//                //"238cpTkVFNz1wABh",
-//                //"C748Y6ZGhpwrBTcf",
-//                //"JT6y8an2tWXrBb3V",
-//                //"cN4dBbqrL17z9kPW",
-//                //"w1VdKgZX4ThGtx3p",
-//                //"jWNdk14bQRTn6VDy",
-//                //"PwVxFR4hvQDLc2At",
-//                //"QG6jwXKnT1NhrzgB",
-//                //"1RntTg3GMYWPjbzf",
-//                //"Mwdxrt81vgPYQZLW",
-//                //"4FMK2ZnjQYcrb73m",
-//                //"zXqLVdfP4vAC13Wb",
-//                //"VxYbTahdKH8g4ZvR",
-//                //"16zd3QXjaxmNTyng",
-//                //"qYVKtTXR9f1hB4nj",
-//                //"LDxVTaw2Bt7PHYCK",
-//                //"qyxPdDfghFCQkpVz",
-//                //"JjnCafbR4LF9wXHg",
-//                //"LphvCVymX9bBM617",
-//                //"3JGa8nqDbHdYQzBX",
-//                //"ymvh7WYKgFnTZAJj",
-//                //"tAxPk9wHpfynvh1K",
-//                //"AVzhDB2jTbqkvWcr",
-//                //"8dgAzjyLJMQn2p1X",
-//                //"13GBjCQDNqZJLwVF",
-//                //"6vB73ky4w1mTQrtJ",
-//                //"NfvcxYqBFjCm1pat",
-//                //"DWYKgBQRjrmPktCZ",
-//                //"Y6qLRpBt18dyVKaH",
-//                //"6p2LvHMGVZKPYyrx",
-//                //"2aPCG1Zdr8VJLpqj",
-//                //"NH13vdQKpxkt4b9a",
-//                //"32vFBV8MkHfD4xAw",
-//                //"hwdNJBg7FCjWPGVt",
-//                //"MYDQkjFbg6WmatGN",
-//                //"dnBqMpxj6WZrT48y",
-//                //"krhd2mTX3RPGLFHg",
-//                //"wmYWPqhvgC2KZBTQ",
-//                //"hXyptMvAdV3q89nj",
-//                //"xmdtj8H4KBCzVN7M",
-//                //"LGb1nzZJfch9qXMY",
-//                //"MfYRhacWZHKrw3CN",
-//                //"KGAHX1RjM2wtWypJ",
-//                //"zxBbcMm9rVYy7QjJ",
-//                //"PFWQCmqJBV1kthZw",
-//                //"NVbGmv4FKTt2d7Lf",
-//                //"H1NJ7BdVLpm2Pk4q",
-//                //"67QNjYKqxC4RgdMF",
-//                //"NtzPcq3JFL824xYg",
-//                //"CD4TNZQMnAkwqGXp",
-//                //"njzGJkbFArmt1yMq",
-//                //"Lp39x6CRXGYmby4W",
-//                //"FMVhH4DJ27yqpdPw",
-//                //"twPnbR7jvk9MALXT",
-//                //"fPHFYdqa2mJrAZbK",
-//                //"2vLPJxTdawfHqyX1",
-//                //"CzL73WBjQ8rFDkNa",
-//                //"fXcwBvWxhFCLYqN2",
-//                //"y3FzMY8pZ7q2gmJA",
-//                //"Qr1HGpjN8gXzAV46",
-//                //"J4d3hqCLNHwjAaFn",
-//                //"6XPWC32rhZYfTvJB",
-//                //"3BAdHXvf7pNYtFg6",
-//                //"7mypZJYrXz6ARb9q",
-//                //"mcwvTKz6P1YfBh3b",
-//                //"bDgBhLptWGY4PZnc",
-//                //"Rnqcv9gDwQNxaJ87",
-//                //"hm2H7bQYkfMCNzwy",
-//                //"xvhYbN38wkFdBGCz",
-//                //"zr12XqawRJFncP7Z",
-//                //"261nGpkj3xDvHRYq",
-//                //"kmFVxMGTjWChPvHc",
-//                //"Cd6gyQqRLrWHbG2V",
-//                //"V4n2RmCZqtaQWpJ6",
-//                //"FPNzYhQZ27bMAW1k",
-//                //"7vN3Qm2YyBqhxJzn",
-//                //"TMJRY6aPAhpZX83z",
-//                //"awVpbkYZ26dBLNt4",
-//                //"VD8TqgAYJ7hypv62",
-//                //"F8tJq4R2Z6VKfQBT",
-//                //"GfH2Dxy37ZnjqYQg",
-//                //"QKGbPRag8HJ1yhrz",
-//                //"p6h4d3WjDXtQrY9m",
-//                //"4zmc7RF3qyJBD1A2",
-//                //"JdVT1FfhqHBD8gw6",
-//                //"1JXMcwjm6RVGqbNf",
-//                //"a7qgf9PDvtxLJhRZ",
-//                //"JzvKQFZPYaLRm2gy",
-//                //"xCbMQ9tJjTvn2acy",
-//                //"2N8HVkM1pLwtAgfQ",
-//                //"aZ7bRdV6CyGBtMLK",
-//                //"XvTJ12GMw8C3Zqtb",
-//                //"VZWLBKfdY43pRPHF",
-//                //"D2MYkXnvpWyg93Fh",
-//                //"ZmTGdqK1BhcnYVPt",
-//                //"R4gwyLhHdxBmv6fN",
-//                //"gBF7NjP6ta3M8Qh9",
-//                //"3BZAqNwtvxLfCFzG",
-//                //"3h6zJ4dKRfQWpkrx",
-//                //"f4wX2a1JZthrBMAV",
-//                //"tjzLAxmNg6J83XCM",
-//                //"MHx2Cdtzw67TmjYg",
-//                //"F1xk3PHWmcTvtRzd",
-//                //"AD4TqnaJz36rNCt8",
-//                //"6LcMtvHWzC3wmfpV",
-//                //"bxF3HRMrj71NVKJ8",
-//                //"8MGPKc2XL3gYfqZB",
-//                //"7ZpHXWtw3xvnkDNq",
-//                //"LAYjy8VDC29NBamg",
-//                //"436QDrVA87xj2qaN",
-//                //"V98HWFhqzcQPT3G7",
-//                //"HLWK9Q67y1FqAJTC",
-//                //"GHxmYdcRNTCQv871",
-//                //"dc7WC2npwZ8YMAv1",
-//                //"NxJBG8TzDmKVaRMf",
-//                //"RQqp83X16HjfCgt2",
-//                //"rhyBpdtmkD6KwzMQ",
-//                //"HAJ2BcVLFnP6zXxZ",
-//                //"aQGpb3mY2r1KJnxw",
-//                //"wC8t4RqG9yMxBdap",
-//                //"gWFc8vXDfHQyG429",
-//                //"B31KW74CyhqmGDZ2",
-//                //"HXnTcp7jq8mraNw9",
-//                //"zjBH7YKmq8McGyxd",
-//                //"8XgWBM2f9yDvnbVJ",
-//                //"NRHAYw6Tf4nvrVhx",
-//                //"f7WTLGd6rFxA8Ka1",
-//                //"ALpDwYNjzhxR8Tgd",
-//                //"1LCYT7gn4wcmr8qH",
-//                //"Zfzr4RHC7qFLMKnQ",
-//                //"8XJP6zhQnCpvZcR4",
-//                //"n13hgtmBLxJPd426",
-//                //"9FYAc7zpZDbgvK6x",
-//                //"9YWMvyX1BfaqTbD4",
-//                //"ah1kgwPBpWMQqGrc",
-//                //"k9RXKbHrfjA8xNyM",
-//                //"1j4V6zhMpfHn8vKT",
-//                //"89MKaDQrZNXkTjcn",
-//                //"NGt6Vjrp3q4XPK18",
-//                //"wJM2TGX7tLVKjmzB",
-//                //"ZXjbnzCP3MFxGLhy",
-//                //"crbT7LGXfZd12gzQ",
-//                //"P7V4CBTapLxnAYzF",
-//                //"fdJkPVGvgaDHMj6N",
-//                //"KyFMHnRNJ1TqxLCg",
-//                //"Y2cMrbaGLdkVBfCq",
-//                //"d8f3PZNAcbvqWpYz",
-//                //"RXVT17aY8hgzHNpx",
-//                //"gb7M6yfxwr3FhC2D",
-//                //"yM2FZ3t89aNvGWrX",
-//                //"CRJK2Zfa3rTnGj8g",
-//                //"zZCJmgwMrdhGkHxy",
-//                //"RcatdY1Xmq8W3DVh",
-//                //"1LGPTqhytCDQ3kpR",
-//                //"pBF81mYH2WgwMGqj",
-//                //"tMWdaYx4b7Zzg8yB",
-//                //"G16RAanc8jW9rKdf",
-//                //"aQgmbATzJ1FLYjdN",
-//                //"VgNAC4k1yDdtRFfp",
-//                //"M382x7DCTPZgrfKm",
-//                //"RrjZ6fQpyMNqVDJG",
-//                //"mR7g3kYDCP9dnpFb",
-//                //"G7vdB6HRbFNqKk2Y",
-//                //"XmWnkZabKQFydVv4",
-//                //"A7G148nrx6VbpXMt",
-//                //"vRVjbT1t2J3KcP8z",
-//                //"tAY9mgp68hDKRTPn",
-//                //"F9LpRYBMT87vCNxb",
-//                //"hdq4rjM6NJzpt287",
-//                //"2r36A7pFZ4Y8vczD",
-//                //"Lr6hZPHzFQmRjbTc",
-//                //"wzW2DMYP4j8Cfh1q",
-//                //"ZL7ctBaHJAFYjC1T",
-//                //"jgFkyAt6C8x4rdXD",
-//                //"HCqbQxdVaPwn7Bym",
-//                //"fw1p2CQdhzHFqP36",
-//                //"Mt473dxpbXLgHvzW",
-//                //"tf1hPMw4nQzY3Caj",
-//                //"LdQpYqH1a8T9MvRZ",
-//                //"mgM4VBGFJWrNKwjR",
-//                //"PxtQB6DYdKbzhaVy",
-//                //"NYvKqj9HPD4LcyMx",
-//                //"qVzrd1BvaX98Nk2g",
-//                //"bdFNjCzcgqHWKfD3",
-//                //"wJA8KYW1xVmT9Cv7",
-//                //"kA4BmD7bCVGpgQJ6",
-//                //"Lp39x6CRXGYmby4W",
-//                //"wqjdmLPT6knW9cpV",
-//                //"ryGp8RhkW9dYPaL1",
-//                //"PW4aYgx3r8cFLCfz",
-//                //"DAB2kQ6HWyLG7vq4",
-//                //"1H7zGnRqaJ4fCj8g",
-//                //"4GrgHPYNa3ptzMcZ",
-//                //"zBZaNmv9Y1pKARj2",
-//                //"fXcwBvWxhFCLYqN2",
-//                //"39CtpjKzyAMPB2Wq",
-//                //"9ZvzMxdjHBc6RW7w",
-//                //"xRQ7AtmDMHY9TwBC",
-//                //"3NHDT9tX4M8jycvQ",
-//                //"tXFAmTD6xQKRfNW8",
-//                //"bC132GqY64trAZvH",
-//                //"xcq4NWRBHTYVpavD",
-//                //"CzL73WBjQ8rFDkNa",
-//                //"Kr9txydaAvBDZTgw",
-//                //"awVpbkYZ26dBLNt4",
-//                //"Qr1HGpjN8gXzAV46",
-//                //"Y162zAvfaZwkKVFx",
-//                //"fcp9L41bJMjaH7Fg",
-//                //"rtxkmTHQ389Vw1dg",
-//                //"MHx2Cdtzw67TmjYg",
-//                //"261nGpkj3xDvHRYq",
-//                //"Lmkg23MK6Vna7xrD",
-//                //"BxkqLrJVNWH6pzRa",
-//                //"8QTbah3YnRNg1XP9",
-//                //"gmPBajyq7Gp4nt2W",
-//                //"TMJRY6aPAhpZX83z",
-//                //"FMVhH4DJ27yqpdPw",
-//                //"1KNcXRCT6kJbWxhQ",
-//                //"v3TgCyW87NtMj2Hx",
-//                //"ngdTW7GaybCD92Ff",
-//                //"wBh4xgqFJXHCW7QT",
-//                //"g73NMdRHK4qGhDk1",
-//                //"XBZKVG2f3zNh6PqL",
-//                //"nBJfVHmqzYvTpDX6",
-//                //"mHCWg3k7Aaq6cN1T",
-//                //"8NbyRrXQzpABKhc3",
-//                //"4C1RVLcpKBP2GjAn",
-//                //"Mf97pxcZFT2yabR1",
-//                //"8yCh9GTHQqM4ZBL6",
-//                //"bC132GqY64trAZvH",
-//                //"mNxbQHqgPpJ762Xr",
-//                //"1mJ28VyA6hDWgzGn",
-//                //"DVLB2ZmbMpg6HC1f",
-//                //"b4yZFhHpjX8xvKDA",
-//                //"BqF7wXGnjbhVzCR6",
-//                //"KdgtPZHh8pLwk4rf",
-//                //"N4pCqhgFjtVHaXW1",
-//                //"rbNkzDqx7dAjmP3C",
-//                //"GwKB6fgCPdv2qVmy",
-//                //"gZqvR4nYCN3zdkAh",
-//                //"QWXPr3LhqKaFN7Ag",
-//                //"Az4HXCtP27BvN8YV",
-//                //"CKMBGLfNymtkgHRW",
-//                //"bjgAycKYq8N9LPpB",
-//                //"fV2yz3pKRdcHDnBA",
-//                //"WtRAB4Gk2arTmdgQ",
-//                //"7xvc6akXr9NQWMfy",
-//                //"hMGXymWTdfq2PkjD",
-//                //"ZmXVhfxr928BzMvd",
-//                //"NZKfM79CqWAnav1F",
-//                //"y31Wz8qpJD9nhgZc",
-//                //"JWvNn2CrK3mTzBZh",
-//                //"TkaLDYrwpbHQF7vn",
-//                //"PWCAHrkf4wYh96vz",
-//                //"Vx1cLqM8KRwFnTkd",
-//                //"th74mNAV39FDBQwC",
-//                //"jhYbgPf3xv1AyZGa",
-//                //"k9qTQ64AtxJWHPVN",
-//                //"8ZfyCPLQFgjhdDtY",
-//                //"tQwyWgHmLf9cnJCa",
-//                //"H8Nw2aTYkFX9pWQB",
-//                //"qc6KDvHzCjP4pBFa",
-//                //"aC1Z4b3KjLB2HXQt",
-//                //"FNn493JjRW6XBM2q",
-//                //"wPhmaFA4KtCkWz9n",
-//                //"NL2fm1Vtkr6xgCpy",
-//                //"A16kKt7nfb3zjN2m",
-//                //"Wx4GDy9PvK2ZqgrX",
-//                //"czrbZDK7RwW94qQm",
-//                //"WHJVZgx9h1DzLntT",
-//                //"QndrcbvVxGHzwCB8",
-//                //"DcLyRrq8tHG9CpWQ",
-//                //"k3hmMw28fLBNbYGC",
-//                //"Rwy7AVYh9BfnJDdC",
-//                //"LtHWvTRCyqPdDBG2",
-//                //"naqYy3v7XHjrNVtc",
-//                //"rDvP9qnYtdRam8VF",
-//                //"na8kmKcAD2jMypPG",
-//                //"AR7t98CpMH6YZJzk",
-//                //"gmbJ3BGHdpFvPnWa",
-//                //"1jLvNrp9RCctK8by",
-//                //"B3gTMhH9fFVjKdWp",
-//                //"Mj8kFHPGnVCpmyQg",
-//                //"dwmzK1qFPHtpY67j",
-//                //"2dbGRwMjFZK1CxVz",
-//                //"Jtc9wWyz78V1D4M6",
-//                //"n917DrvFG2w6dLJp",
-//                //"rHBV2DhCpQfkGw1J",
-//                //"xjv4t7LQ3XdzGqY9",
-//                //"9nCvWXQLt7RY48z2",
-//                //"VLyFQY6BwPNHKt3h",
-//                //"C1AxTBbyNPnckHzd",
-//                //"vhFtgNCRyJM1karq",
-//                //"HNvpWMBhZ3JKdG16",
-//                //"dkNg3M2CTG847VDj",
-//                //"fjY7vznaTtp86PhM",
-//                //"jdzkJf3PyTGxXC8h",
-//                //"aXwTmd3JphZFM8nk",
-//                //"fcZ6dLDvr2XP3RAJ",
-//                //"6BHL2FKm19NvDfnT",
-//                //"h1X932VFAbP8vgJq",
-//                //"vjMmb63XBR4Dhykq",
-//                //"L8apVQFj3JGTxqNK",
-//                //"Qnxyg3dkA7CrNFvt",
-//                //"HCYm4L2jMfhANaVG",
-//                //"8jt92HGkZFxd1MRC",
-//                //"2QzcAvghaZ7xC9W8",
-//                //"HRKzQxtyCqZMbk9F",
-//                //"pw7aLQXF2BtdTr18",
-//                //"MJZC6LYkDcwK9RpV",
-//                //"fzF7WJwjcX1QAn6Z",
-//                //"43ktJvmPBbf7NHwT",
-//                //"yYkmv1FbxcCdNMJ7",
-//                //"Gqj6T3dNvy2p7QcC",
-//                //"pWMr3H28Xvgt1LDT",
-//                //"2XJVDnGLa73zh8N1",
-//                //"TFfYZ83VrnmhMRCL",
-//                //"8mKd6WwQtgLNbD1h",
-//                //"F8NJbHpzVQyTGPnC",
-//                //"WCDqx2vyA3Kghzfm",
-//                //"r3hCkZxp1fVPdTjM",
-//                //"BmDqGTYpCx7Mhawz",
-//                //"fqzjxM3V6TG19ACQ",
-//                //"q2cxRGB18LfaKNXP",
-//                //"tWQPmcD28YN3pyAH",
-//                //"FcJgqpmQHZ71NbwV",
-//                //"3Lk4nraymjWqPtc1",
-//                //"G1km34MQtdvcZbPf",
-//                //"2AnqxTgPpazCQ3HM",
-//                //"y6bvYRHqPMgVkL2Q",
-//                //"HtXwyWmVnjR8zdC4",
-//                //"MRZG9p3Cdzk8xjFW",
-//                //"gzWa2AhDj8X3K71H",
-//                //"6qWtvhVMpJHjfx8D",
-//                //"K8BaG3FDyAxv4Vth",
-//                //"wrWKm7PRaG4jy6pf",
-//                //"QkAGmMtaj3pynZ1H",
-//                //"JmGxBTb12PDq8W34",
-//                //"QMP3AY7GL1fwvN6k",
-//                //"BazTXyKVhvbn4cgx",
-//                //"WpvhP4xgXwRKCADQ",
-//                //"xMnFTBHbVkfYWDry",
-//                //"WAP169jHqrzhVmbg",
-//                //"4c1qWvP239jNCRrH",
-//                //"2JPYxy89XbGRmahg",
-//                //"rANhJ97k3wn1CfyZ",
-//                //"8rWkKtgjX6bDRL2q",
-//                //"MRHgm7q3KAxGW69P",
-//                //"9ZryMKaLVCz61d4X",
-//                //"MvqR9FcN8h4r1DBZ",
-//                //"ZjFnLWbA4zJhR9fd",
-//                //"bt4y3WXgN2xFQm6Y",
-//                "6w8zVf3LjWrJZbm9",
-//"C3916MTKWXrBL7cF",
-//"bPA1FLrcpNZ9hBnD",
-//"qaTR8MBQZJDyzGwr",
-//"nqFzxQMHbaC1J9cA",
-//"wDmLqgWnbXt73KrN",
-//"vRpcn42P6tKYZCa9",
-//"gfFkRmNBJXZWzj6C",
-//"QtGfp4DZ1WTxPNjM",
-//"tGRCJkKZpHrQXwdD",
-//"Zz8xnQCLytrqjHha",
-//"b4cpNBCZt69j37L8",
-//"BWpTNG3YH9PQLF1b",
-//"HaLNdr2h97RBYC3f",
-//"CYF6cDAjVHM4vRKk",
-//"YxtzbL8QnwdchrXH",
-//"V8d3mFntv1fbTBQP",
-//"mMbA7C2pgnV1kjcP",
-//"7C9VJTBvfHqmdrWZ",
-//"h9HRcvMgJxPV1CbZ",
-//"7QMp4yWv8r1KLDjz",
-//"9Warv6P4xVmbJ7Cc",
-//"qN1b4JMcA678dfwg",
-//"jR9Bwvy6kHQYXCL2",
-//"7JbPqnmvtY2kcpjX",
-//"mJM4KR6AfQL2VbTg",
-//"fNdPmaVD2qnBK3xA",
-//"Ph43aCkXtYBcKzwT",
-//"PFvtK2T84AkzxBR3",
-//"H6gB7J8dYxRhwZDb",
-//"vFWBCKkYjhnQxX7D",
-//"vjGQTaqkYtzbXPKR",
-//"xGQBJdRt6Zga9cvf",
-//"2CR4qxGXcWYhtP3J",
-//"RYN6KPyrg2k9fwZM",
-//"Fa9X8xWM17ZjYGR4",
-//"76d18MtaBWvTcQmL",
-//"YdhD4fJMy1tXjz8c",
-//"mjxnyfCbVQHNrc8G",
-//"T3yqjmPYapcn2r6R",
-//"f8vQJ4BaF3NA9XML",
-//"TPwJVcLB38Cn1gmy",
-//"yzxwLHYtJBAjpKdR",
-//"nAgy6RJDPMk9dcXQ",
-//"9NB7fZk2Fjhq3dwG",
-//"gJD7TMQFVPxtNCkW",
-//"qAWdVB7RaZjQ9nyK",
-//"arXdfK81QT63x4yz",
-//"bnVv2qkwztLxhTYg",
-//"6g3FrCbGKm1kRQ7y",
-//"x1cMvNjAnRGrXykK",
-//"rKd3YkpqwJXbGR4g",
-//"7BnRdHY3FDV1Mk4j",
-//"mGxC9ka34BJZTHWN",
-//"4Nrkvtwm3JyX6qRH",
-//"nPgW3MQcrvbFYLxy",
-//"f26vQCHzT34NW8Kk",
-//"PWK7jRQb8THadnkA",
-//"3AFxgKR2p4CQGar7",
-//"3d2hpKnkw7VzaPJT",
-//"296dHaXTKZqwgDhA",
-//"JKgY3n6ayHvAWxQp",
-//"TrNkVRfHQd2Db6Pm",
-//"kNPWwxt4Q8Vpv2aX",
-//"yCA6zJMgRHqY4mLj",
-//"wrABWLMQRN8HaP3C",
-//"QXWaH1VnCw3rYctJ",
-//"Pg3ZhtJrwNCQbqfz",
-//"4Jd97bwG3VpRWamY",
-//"FX7RHJh2GDMvAqz3",
-//"ZJ9Bj8vcdqCTWGxr",
-//"k6npVzDMCAmhGYgX",
-//"Xv3abBTrJLMKHCjh",
-//"bNQZL8v2fh7JjAYB",
-//"kdxwDLXhm4r293nP",
-//"F2aHxngfzwG3vR7V",
-//"PhLw8CDrA1WYjxGa",
-//"BxQrpwCgzRv2nKMT",
-//"nqKDHpLjBcT6rdQ9",
-//"g1HfmyzFhPvQWbAN",
-//"Yxkf6VwQj4WCTBMz",
-//"2fwxKC3YGXmyvWjk",
-//"Wvwr4tkQDK12CXzf",
-//"RB9rpJcgZ7xk3LvA",
-//"R38VKxChYmNGPFpc",
-//"2yK4fQHpC6Ax9NJ8",
-//"CWaTxLAHjdykG7Kh",
-//"vVRp87XyqBdrJACn",
-//"f3RMwGvLXbjWY46z",
-//"C43VMTmLNvat7zZD",
-//"W8BbaTyYjxm6RnHQ",
-//"bmKgpcLydxqAD4RW",
-//"4tJc7Hp8zM6whZyd",
-//"CaQPGWkrK2mtvNw1",
-//"bfT6Ja8CW7NGDMkV",
-//"BaHcdn3yGVXTwpf9",
-//"hWHDZQgCvkBGp9a4",
-//"BqVRrTDJghYcP9Xz",
-//"Vyn163MaCfHPgx4r",
-//"CfhFd62xm1ZAMJqa",
-//"CfhFd62xm1ZAMJqa",
-//"Ka83V2Yrf9yZQRpF",
-//"qaxyMkgRbrBN82fK",
-//"zDhPyA3vnKZNLpaM",
-//"W34HPMavypr9XCT8",
-//"Y1P8KkFQNrW3dRfx",
-//"NZFcbwJ1LDf7RXmH",
-//"dQqCfYmaGVkHFPhL",
-//"3nBVR1Cb79AhrGKZ",
-//"rdPVRhjqvXWYAZFb",
-//"LVd1wyvtjmrRqPf2",
-//"tW3GybJ2Zc4LqNFC",
-//"Jrd816ftcHWKRzb7",
-//"kLKg4RYPqXnxTJCA",
-//"8MqHmTZaF4Lhb12x",
-//"g8zRXhHrxnABdLVY",
-//"R9aX8TLdZxWJVKQG",
-//"qdX9a6cbKVp4Qn1g",
-//"RjpgW139dthGFYL2",
-//"CfWbhYrqTkv183jA",
-//"vM1cxYpGwmWLKHzb",
-//"2afPz3kKNtVpyG6n",
-//"f1PwGm6dgKMNaJVj",
-//"xqd7cnPyzmVtNMwH",
-//"38mYqgfWbBFVJxQj",
-//"gB4TWZ1XKk9wfxHt",
-//"wJKZvGdgt96pHNkb",
-//"DjBLPTdKrYZQRt2c",
-//"WVF6PazyNYfgJvdc",
-//"zpdq1K83A7XfwVWL",
-//"gj3zhpV6wBG9AN1v",
-//"p7kdAfbwxFQHc1gy",
-//"Qkz814HjR7GTthDr",
-//"zkKHVAa1M62NbBGZ",
-//"JBvjpZ2XcTWaCh3G",
-//"cJmqa82ZWTgnFNr6",
-//"ZBQGWTvXKkmdbJqD",
-//"CcFn3x4KJfXtVyQd",
-//"TJ2yt1fDwxrYGn9V",
-//"gwvPH2cAKGjLb9NW",
-//"C4tzbg2kyaVPcFXT",
-//"x8pWk7Q9vM3zmygF",
-//"QcBm3y9gT4KdnGzq",
-//"XN9ywZ4pD7kF3Cmq",
-//"XyG2fKmP31zZJNDj",
-//"fhL6JkqANQGr1mZn",
-//"PC4TNqc7vDBYbzFr",
-//"Dy79mR2Tb1zKXhGB",
-//"GrNzj1F3BwbQXavK",
-//"CJDWgwBdNvAKyFPQ",
-//"TRxHcMy1XkVYNCpv",
-//"Dga9PFyJqGBp8bCT",
-//"TBLFcpHYtJZfwWN9",
-//"mxyrFWQVY6K81RZc",
-//"GcmvLRMz7hwAkVp8",
-//"XKNL9HFkMVdPfnBw",
-//"GqHQ3hvbpfc7Tt4Z",
-//"P4x9mAk8bHYRZDMq",
-//"xWFTQd2abtJ1qjnw",
-//"r7WvchGkFygtapVA",
-//"VLqrWaANF24zp1gK",
-//"q6FjyY9NH38J7GBc",
-//"NmcjXyLFDbPQzVAg",
-//"3hqGVm9TvprXxK8L",
-//"9CmftTH6X7RcvKxy",
-//"48khPx2Qc6ZYWmTp",
-//"K3ZQxfGazmkH4y91",
-//"Qgm3h8GLbk6TdNCy",
-//"3tRKGkjxzapNPvmd",
-//"DR9Hpk27nYQbgvaj",
-//"gwzWNKhb2nC8VvtX",
-//"vQVFMbZPgxLHCm8f",
-//"2ZBYDfnpJx9HXv43",
-//"KwrtAxRHMXVFLacp",
-//"k2zj1MFtXhfCWGRT",
-//"qRzH9bLjdr2WMych",
-//"2MBmnj6P7dfDrHkh",
-//"zYt4FjKdMBxQp8rg",
-//"M7fdQcPGkyBaZhvA",
-//"QvC47YZR9LwBJrj8",
-//"7AzWDwkhYTQGjn2a",
-//"Wz12MaxhLbdDw4v9",
-//"qxpvNPKwJ684TB2F",
-//"4JdAF2RK3pQrwvTq",
-//"gq7cwdQkBpmvAfzR",
-//"cXZgjBHnCJWD42NT",
-//"Q2hVvrj8kWNx4mGM",
-//"F369AgLDZV2nwyNt",
-//"7ZrKydxTcbpDYmAk",
-//"vCVM1zXRWfn86bLZ",
-//"nGzLmW43BbM6xXdw",
-//"xRm48fHZh9pWXdKP",
-//"KzH3bvtcG8wVXyNh",
-//"ThtCrdWQNjY4368D",
-//"BPy4YfAHJ8ZhbKwx",
-//"wVyY9dHhtBbgmz7F",
-//"z1PkV8L7TFfDR9bX",
-//"kGVFtzmHC31x7XPf",
-//"JFDqcnZzY81L3Pdv",
-//"zLGgVcdb7fp9wMar",
-//"CfhFd62xm1ZAMJqa",
-//"Ka83V2Yrf9yZQRpF",
-//"qaxyMkgRbrBN82fK",
-//"zDhPyA3vnKZNLpaM",
-//"W34HPMavypr9XCT8",
-//"Y1P8KkFQNrW3dRfx",
-//"NZFcbwJ1LDf7RXmH",
-//"dQqCfYmaGVkHFPhL",
-//"3nBVR1Cb79AhrGKZ",
-//"rdPVRhjqvXWYAZFb",
-//"LVd1wyvtjmrRqPf2",
-//"tW3GybJ2Zc4LqNFC",
-//"Jrd816ftcHWKRzb7",
-//"kLKg4RYPqXnxTJCA",
-//"8MqHmTZaF4Lhb12x",
-//"g8zRXhHrxnABdLVY",
-//"R9aX8TLdZxWJVKQG",
-//"qdX9a6cbKVp4Qn1g",
-//"RjpgW139dthGFYL2",
-//"CfWbhYrqTkv183jA",
-//"vM1cxYpGwmWLKHzb",
-//"2afPz3kKNtVpyG6n",
-//"f1PwGm6dgKMNaJVj",
-//"xqd7cnPyzmVtNMwH",
-//"38mYqgfWbBFVJxQj",
-//"gB4TWZ1XKk9wfxHt",
-//"wJKZvGdgt96pHNkb",
-//"DjBLPTdKrYZQRt2c",
-//"WVF6PazyNYfgJvdc",
-//"zpdq1K83A7XfwVWL",
-//"gj3zhpV6wBG9AN1v",
-//"p7kdAfbwxFQHc1gy",
-//"Qkz814HjR7GTthDr",
-//"zkKHVAa1M62NbBGZ",
-//"JBvjpZ2XcTWaCh3G",
-//"cJmqa82ZWTgnFNr6",
-//"ZBQGWTvXKkmdbJqD",
-//"CcFn3x4KJfXtVyQd",
-//"TJ2yt1fDwxrYGn9V",
-//"gwvPH2cAKGjLb9NW",
-//"C4tzbg2kyaVPcFXT",
-//"x8pWk7Q9vM3zmygF",
-//"QcBm3y9gT4KdnGzq",
-//"XN9ywZ4pD7kF3Cmq",
-//"XyG2fKmP31zZJNDj",
-//"fhL6JkqANQGr1mZn",
-//"PC4TNqc7vDBYbzFr",
-//"Dy79mR2Tb1zKXhGB",
-//"GrNzj1F3BwbQXavK",
-//"CJDWgwBdNvAKyFPQ",
-//"TRxHcMy1XkVYNCpv",
-//"Dga9PFyJqGBp8bCT",
-//"TBLFcpHYtJZfwWN9",
-//"mxyrFWQVY6K81RZc",
-//"GcmvLRMz7hwAkVp8",
-//"XKNL9HFkMVdPfnBw",
-//"GqHQ3hvbpfc7Tt4Z",
-//"P4x9mAk8bHYRZDMq",
-//"xWFTQd2abtJ1qjnw",
-//"r7WvchGkFygtapVA",
-//"VLqrWaANF24zp1gK",
-//"q6FjyY9NH38J7GBc",
-//"NmcjXyLFDbPQzVAg",
-//"3hqGVm9TvprXxK8L",
-//"9CmftTH6X7RcvKxy",
-//"48khPx2Qc6ZYWmTp",
-//"K3ZQxfGazmkH4y91",
-//"Qgm3h8GLbk6TdNCy",
-//"3tRKGkjxzapNPvmd",
-//"DR9Hpk27nYQbgvaj",
-//"gwzWNKhb2nC8VvtX",
-//"vQVFMbZPgxLHCm8f",
-//"2ZBYDfnpJx9HXv43",
-//"KwrtAxRHMXVFLacp",
-//"k2zj1MFtXhfCWGRT",
-//"qRzH9bLjdr2WMych",
-//"2MBmnj6P7dfDrHkh",
-//"zYt4FjKdMBxQp8rg",
-//"M7fdQcPGkyBaZhvA",
-//"QvC47YZR9LwBJrj8",
-//"7AzWDwkhYTQGjn2a",
-//"Wz12MaxhLbdDw4v9",
-//"qxpvNPKwJ684TB2F",
-//"4JdAF2RK3pQrwvTq",
-//"gq7cwdQkBpmvAfzR",
-//"cXZgjBHnCJWD42NT",
-//"Q2hVvrj8kWNx4mGM",
-//"F369AgLDZV2nwyNt",
-//"7ZrKydxTcbpDYmAk",
-//"vCVM1zXRWfn86bLZ",
-//"nGzLmW43BbM6xXdw",
-//"xRm48fHZh9pWXdKP",
-//"KzH3bvtcG8wVXyNh",
-//"ThtCrdWQNjY4368D",
-//"BPy4YfAHJ8ZhbKwx",
-//"wVyY9dHhtBbgmz7F",
-//"z1PkV8L7TFfDR9bX",
-//"kGVFtzmHC31x7XPf",
-//"JFDqcnZzY81L3Pdv",
-//"zLGgVcdb7fp9wMar",
-//"cVq1v6CrwFzba2my",
-//"KcHwLjbyvnW32PxX",
-//"CakwVf3vQPGJhM8Y",
-//"R9xV3N4JF1cG6Yf8",
-//"xLr7n3mCzaTtW4qK",
-//"LMD7AVw2Gq68aTdn",
-//"Hn8qDMVCzLxQA6vd",
-//"jyKPYmVBMd6gHr7n",
-//"mWHGK3AZ7fgxt6DN",
-//"F8JKY2cPkd7x6MrN",
-//"by7jMGC1JanRwhqV",
-//"PgHbdD3LKpfWM6qv",
-//"1y87wzJk4fPBmqKv",
-//"1kYhV4JmZMBLrTCx",
-//"2wTG47hXxLPKRWzN",
-//"qczXdGD2W8hY3mCR",
-//"9ZYn1DmxPAvtrLJh",
-//"jzBvbHpAqyLatmwM",
-//"mjJpwht1qM7THcax",
-//"pAQaRnvcYH1hxPy6",
-//"L83TbnHw79FW2RVd",
-//"gMc19TtbFWJjBPRZ",
-//"W9AKcLj3aNwvPbRd",
-//"tRJCp9bB7rz1vyn6",
-//"VgqMWRnLvJc6aXGh",
-//"cWPzC2jg8yahxMY1",
-//"C9dAT7ZKygpXxM2j",
-//"tAnCFca2HgZ8j1zp",
-//"1R3gHnqN2cjLfGB7",
-//"JMgTc2jBftNkRbph",
-//"hVLvAKcWaGHQpFnT",
-//"m247pTW6hVy8RwGr",
-//"zAt8m1K6HhdQa7YV",
-//"Z1n9bhkcydMRzXLC",
-//"nqfDc4Z7AyzNGvmg",
-//"17n4mcFRXtkqTQ9A",
-//"PAKMrTZz8d1c3wDm",
-//"pfaMxjC9TvrqXJdm",
-//"PmnWJTXDF3AayBdt",
-//"kb1PJpzZBQH2rvMF",
-//"wQgR94rDqMmC8KGV",
-//"XzYG8FNbKMVrqTR2",
-//"c9JqyRv1GjYAZxnr",
-//"rQ4NJ7xcHqBRA692",
-//"dMKNaL8G2xABCkwg",
-//"8dAzh3WHNYvTV4yq",
-//"2WhXxtAJnPfCVZvY",
-//"JXG2pFN8hnfTMyRt",
-//"jK34Bw1pzPJ6y7vT",
-//"k6PYH1ay23MzxTdb",
-//"tx6RjHBNzkXbcyQJ",
-//"Vpb4Anjz9KF1cXgR",
-//"FcMmy4RXC1H9VLZ8",
-//"HcpV9rqKF836DJyn",
-//"vyPpVYAxfZrXB3Wn",
-//"LJ1KYGgT4qBFQW8m",
-//"nckG9qhX1JMjRamT",
-//"mfnNpKWT9aCtRP8V",
-//"MN9cRwKCyYfdLWHr",
-//"pChFb4zNGcH3QtgP",
-//"NtK3kLfcYV1jb7Q6",
-//"8B1bGqrdvHpTzawx",
-//"8j4VLfwcmvnHXJ2g",
-//"qQAFgrnN8h3w2L4p",
-//"LyhtPNk8B7ZmdFC9",
-//"v2HTWbzh1VLpDyXa",
-//"bfrV3YCvZFM8j2mQ",
-//"nqt37dDY1Hwk4zGZ",
-//"79gBNjnyPrpxAYva",
-//"Xtk1C7y3LfMP4Gbg",
-//"y3R8Jxqc7bhrWtFZ",
-//"LfbZXz7NVPaAMGcJ",
-//"PY2BkyqpRnxWJfZg",
-//"MXHKbQR9C4kpDFnv",
-//"XFpWcGaLf2qvYNrT",
-//"nc39HVR2gtkmGDw7",
-//"7VXKBQT2hM43gWtR",
-//"g8xZyRF6jMKLnvmH",
-//"NpfKLnjzavAJ1yR8",
-//"qpMaQfkdG9Lv17nW",
-//"tnV4RPBx7w1QdFHC",
-//"4v2WPrK6fwyF1qBL",
-//"fgYQBbKcRG2L7NTC",
-//"CjhytfDAa1V39qJQ",
-//"fp1DBK8rdhbjY3ZQ",
-//"72t9QxXPTWCcAmd6",
-//"tJv67RNAgFxBMbf2",
-//"wkmQxcLC9X861nYJ",
-//"1HMdvxg7aJQ3CBZA",
-//"kXfzC1av6DPLQTNB",
-//"zFQP7bfpZkn4VKmX",
-//"yTaLqrHtxdkQK2mV",
-//"mXGxt4nVdJTb2w1B",
-//"B1WNkqvAF42PRY8h",
-//"qHd2wnhGRMf1Wv9N",
-//"pwZg6tCGdBcvyqN3",
-//"AKxthpLRCgk7Nf4P",
-//"1fRCDhkNJH96Z8aK",
-//"RNWTzmCyj9tLJn3f",
-//"3b6QHxM4XdyqcZfW",
-//"cVq1v6CrwFzba2my",
-//"KcHwLjbyvnW32PxX",
-//"CakwVf3vQPGJhM8Y",
-//"R9xV3N4JF1cG6Yf8",
-//"xLr7n3mCzaTtW4qK",
-//"LMD7AVw2Gq68aTdn",
-//"Hn8qDMVCzLxQA6vd",
-//"jyKPYmVBMd6gHr7n",
-//"mWHGK3AZ7fgxt6DN",
-//"F8JKY2cPkd7x6MrN",
-//"by7jMGC1JanRwhqV",
-//"PgHbdD3LKpfWM6qv",
-//"1y87wzJk4fPBmqKv",
-//"1kYhV4JmZMBLrTCx",
-//"2wTG47hXxLPKRWzN",
-//"qczXdGD2W8hY3mCR",
-//"9ZYn1DmxPAvtrLJh",
-//"jzBvbHpAqyLatmwM",
-//"mjJpwht1qM7THcax",
-//"pAQaRnvcYH1hxPy6",
-//"L83TbnHw79FW2RVd",
-//"gMc19TtbFWJjBPRZ",
-//"W9AKcLj3aNwvPbRd",
-//"tRJCp9bB7rz1vyn6",
-//"VgqMWRnLvJc6aXGh",
-//"cWPzC2jg8yahxMY1",
-//"C9dAT7ZKygpXxM2j",
-//"tAnCFca2HgZ8j1zp",
-//"1R3gHnqN2cjLfGB7",
-//"JMgTc2jBftNkRbph",
-//"hVLvAKcWaGHQpFnT",
-//"m247pTW6hVy8RwGr",
-//"zAt8m1K6HhdQa7YV",
-//"Z1n9bhkcydMRzXLC",
-//"nqfDc4Z7AyzNGvmg",
-//"17n4mcFRXtkqTQ9A",
-//"PAKMrTZz8d1c3wDm",
-//"pfaMxjC9TvrqXJdm",
-//"PmnWJTXDF3AayBdt",
-//"kb1PJpzZBQH2rvMF",
-//"wQgR94rDqMmC8KGV",
-//"XzYG8FNbKMVrqTR2",
-//"c9JqyRv1GjYAZxnr",
-//"rQ4NJ7xcHqBRA692",
-//"dMKNaL8G2xABCkwg",
-//"8dAzh3WHNYvTV4yq",
-//"2WhXxtAJnPfCVZvY",
-//"JXG2pFN8hnfTMyRt",
-//"jK34Bw1pzPJ6y7vT",
-//"k6PYH1ay23MzxTdb",
-//"tx6RjHBNzkXbcyQJ",
-//"Vpb4Anjz9KF1cXgR",
-//"FcMmy4RXC1H9VLZ8",
-//"HcpV9rqKF836DJyn",
-//"vyPpVYAxfZrXB3Wn",
-//"LJ1KYGgT4qBFQW8m",
-//"nckG9qhX1JMjRamT",
-//"mfnNpKWT9aCtRP8V",
-//"MN9cRwKCyYfdLWHr",
-//"pChFb4zNGcH3QtgP",
-//"NtK3kLfcYV1jb7Q6",
-//"8B1bGqrdvHpTzawx",
-//"8j4VLfwcmvnHXJ2g",
-//"qQAFgrnN8h3w2L4p",
-//"LyhtPNk8B7ZmdFC9",
-//"v2HTWbzh1VLpDyXa",
-//"bfrV3YCvZFM8j2mQ",
-//"nqt37dDY1Hwk4zGZ",
-//"79gBNjnyPrpxAYva",
-//"Xtk1C7y3LfMP4Gbg",
-//"y3R8Jxqc7bhrWtFZ",
-//"LfbZXz7NVPaAMGcJ",
-//"PY2BkyqpRnxWJfZg",
-//"MXHKbQR9C4kpDFnv",
-//"XFpWcGaLf2qvYNrT",
-//"nc39HVR2gtkmGDw7",
-//"7VXKBQT2hM43gWtR",
-//"g8xZyRF6jMKLnvmH",
-//"NpfKLnjzavAJ1yR8",
-//"qpMaQfkdG9Lv17nW",
-//"tnV4RPBx7w1QdFHC",
-//"4v2WPrK6fwyF1qBL",
-//"fgYQBbKcRG2L7NTC",
-//"CjhytfDAa1V39qJQ",
-//"fp1DBK8rdhbjY3ZQ",
-//"72t9QxXPTWCcAmd6",
-//"tJv67RNAgFxBMbf2",
-//"wkmQxcLC9X861nYJ",
-//"1HMdvxg7aJQ3CBZA",
-//"kXfzC1av6DPLQTNB",
-//"zFQP7bfpZkn4VKmX",
-//"yTaLqrHtxdkQK2mV",
-//"mXGxt4nVdJTb2w1B",
-//"B1WNkqvAF42PRY8h",
-//"qHd2wnhGRMf1Wv9N",
-//"pwZg6tCGdBcvyqN3",
-//"AKxthpLRCgk7Nf4P",
-//"1fRCDhkNJH96Z8aK",
-//"RNWTzmCyj9tLJn3f",
-//"3b6QHxM4XdyqcZfW",
-//"MbYBjx9NnVfTPhdF",
-//"PnAwNMX46hLjZT9R",
-//"Q1jabRACZqFPDw64",
-//"RBQ1mkaN7wTv3W9b",
-//"h4dDHwAKb9FfmVrP",
-//"djhAPTvnML49BNYD",
-//"Pbd7yY9hj28DLgA4",
-//"bfJv389mGXATcCjQ",
-//"9y4kGcvCb86ZJVXw",
-//"RKTJH9XkYdh8pG72",
-//"fDgdjt1LxBnmCRAN",
-//"Mp1xvRCVDqfFr8Zw",
-//"1gdnkMz7P2YVAJwb",
-//"L6dbPk4AHRw9tFWj",
-//"tF1r9YPpDLCVXwKz",
-//"6dw18HNtnxAR2GCZ",
-//"9mqpzK62PT4CyZY8",
-//"1fbA7YMTxGX2Qw69",
-//"LN74TPZa9gt3CwRn",
-//"X3wkrg7fzACDY1tG",
-//"P4XT3ag2v7yjLMNY",
-//"ntc3MxdNL6rQvYjk",
-//"PTMqknCrKQzg6tZ3",
-//"hQW31N4A9VjPvrG8",
-//"JbYNKm3zM4HFhxWR",
-//"AWHaJvzC7P2h3nYd",
-//"nb2gdKcqtXYTfyaA",
-//"hn2Xx9tgjL3wcHq7",
-//"RjDkzbnA1Br74cNK",
-//"HVAFrZh6w3dQGWNj",
-//"qny6wHT7QJmaCGzx",
-//"QK7qZXRTrjHc4zCD",
-//"97naAtWTY4wZD2Gh",
-//"F7qNMd49bGjAtrXp",
-//"LZrXN1qTdPgmtcax",
-//"PnFN8fCH6XGg1Ayp",
-//"mLZW3GX7ThRMKa26",
-//"tAQyK7gCJZpRhb6Y",
-//"dg9x1h3rY2pVzmZ4",
-//"KkJfzQH46TZdCMvn",
-//"h83wMHT1m9FAqZXa",
-//"yNZjhC3JMAGzBncb",
-//"fwhdHWDATVgG9LzQ",
-//"Z1cKgVTaXCp87hqN",
-//"hXMvdpw9g8acDj1k",
-//"YLnMKayRm1qdj2rz",
-//"yz8m7XDtVc2MwQFg",
-//"JvXwZzV1grM369N2",
-//"2YTWPJgNKdfa6yXz",
-//"m2gV41ZdFwBPaMGk",
-//"hZmPK1BVXWA3HbgM",
-//"Y9AmMkRzaQNZcwGh",
-//"mzgKrQ4CAP2TGMan",
-//"X2FNkBHx7rAgwnT6",
-//"LkaXCpjqc6GVQ7dw",
-//"LxcZzDgBQGjN9mqA",
-//"tZVxYGw3p824bDQd",
-//"r9YzhkABCFNcRm3g",
-//"V83n7pZHFNbw4rMq",
-//"DhY9FwjNZxQkvXrb",
-//"jBwJaLmRVyQtHC7h",
-//"dYTL8ZrvAQ6XapBx",
-//"fxcHF2qXCk37PJnB",
-//"zqtC7yHrvXAg4mwk",
-//"BrYtHpbq6PmjZFQD",
-//"acQVNpYxF6j1Phdb",
-//"V8J2HzFMX61hyKmP",
-//"hkjGpDrxFcdR7QNT",
-//"XFqZG4LPgQRmNnfK",
-//"pKP8wyCDAk9Q3NfL",
-//"dGMxFBt9rCWaZVY7",
-//"QR3M1dGvVwDt2ZA8",
-//"GK7cF9vnXrC1mfaz",
-//"H8bDvM14xnQfL9Rk",
-//"f3gYWrBzKPxDJp24",
-//"gCf27LHpw9FPKX61",
-//"pB9DbzPdZQ4KX8Cq",
-//"tw97xcDMdPvKW3TA",
-//"NTMAJZmHD7dRYn6b",
-//"vLjrMXzaJc7ZVR3A",
-//"CyH8RXqKmwF4Q27T",
-//"YCbkRfJNA4pB7anQ",
-//"7pkqRThKvGyVjPYM",
-//"9PbZQN28wDXHrcv7",
-//"nbTkLw8pDrAYcmBg",
-//"yLTab3XfVWK9vC6q",
-//"LmA24Mknh8DpZwbc",
-//"4fJa8GZB2DtCqYWj",
-//"cmP2QLjJNRT8xb3M",
-//"VHwnpTXWxBmDCcM8",
-//"73XtfkKghYByZmAb",
-//"4La2FmRMzJhNCxn7",
-//"jp1d2tGvXwc6JWMD",
-//"2CBDJqzPxj8dLnf4",
-//"dv6FYRCwkj8g9fc3",
-//"8K2jfg1YxBPmvH3d",
-//"xznVmhCHkrQ7L3vW",
-//"JHwg6QjpCqmzLt4R",
-//"QyJ7tDYjdkvpmKML",
-//"qCLMZwmD9y7V83df",
-//"PMjwNqmfBbHJ8vpF",
-//"wrzKW7FDjfcVqZ9P",
-//"BxMZyzvc3PbJC7Kh",
-//"NJq1yjZX6dcpLQr8",
-//"wB8bjT4rK6qCcgDx",
-//"PLB8V9hbz1fqYp3X",
-//"Rwf3Xc1926AprWzg",
-//"WncKdY7ftXxBARF6",
-//"MpnPYBkw6GaDt7jA",
-//"Rd4MQwZ2GjhyK7WT",
-//"gGHc7jWfQDLB8Zp1",
-//"tg9yjmHRWVzBDf43",
-//"TWZ9A7HwzxbjhKFM",
-//"h2ZGdaArPxLt7wNW",
-//"nRrhv89m61XTC7zt",
-//"dAKkQDVv4hp3Lg9y",
-//"JwRbdhjg9k6Q41AN",
-//"hTJ6yNcZpnQV9fxL",
-//"7bzwmDhFAdGtcV83",
-//"FAZd8jq9WPcptLNr",
-//"mDq7JyAxYTGwZMHb",
-//"WDgtN4pA7fY1R8yP",
-//"jYLX1pbfJM6KDcaT",
-//"HpRdB47K8x2TyYJZ",
-//"9Y87kyCjQFmLJfGg",
-//"462QNcC1amFLPgwY",
-//"DAjbrwpJvh8BHfP4",
-//"QFZRbthw3rBTY9JA",
-//"ZXh9YAbMq8fGa1nQ",
-//"qTVPgD4pGywhC8d6",
-//"McBNVX678fzdKnvQ",
-//"2CQ8XTbmdtpcaKwL",
-//"hfRkXPa4qCQNL9Gc",
-//"wKJ3z4Zgc9nGRHQT",
-//"HdNRz9PXbTpQyBq7",
-//"TGAgm6NRWhk8DLM4",
-//"HzhbQGM2nkrqy1ap",
-//"hpfBWwXLayGmNQHY",
-//"Tx67NwvqAVng2fma",
-//"j1mF6DBdw9x3pbzH",
-//"XTKypmC7tJbW1LcN",
-//"2JjmBbpdgRxnAY8H",
-//"kNmTyrLVtWwQRA6H",
-//"zctdxvMy2k7pgL6w",
-//"RPCN3dTxcmFLpWDz",
-//"JWqG9HFg2KLbRatz",
-//"kmtbdfhZncAy1Mjz",
-//"4WDhp97JMd28Hybr",
-//"cVL8HPwyYkrgqjXf",
-//"zpy3mrntk472Gg8B",
-//"3kKWdyPDXL6wcvzf",
-//"pBTRv6mgFhXK1Zfz",
-//"YHdgGLP8R4jm2crf",
-//"2N8gY7VTC1Bw4PRp",
-//"hDTf1QX9xKJ4bBqR",
-//"DJw8TBvCM2xpHyGr",
-//"PQz4k2Gfr6yVcgXZ",
-//"9hkvwfbd1K84YpQc",
-//"qcDpdzFh6abLRjf2",
-//"pCgGXj9VJ3NB146f",
-//"tDK8ZQFG4P3r76b9",
-//"jHMtXCKFDyVY4Axg",
-//"T87jvX4V2xmBARy9",
-//"KHcbPCtrqDaX6ALW",
-//"w8mxqh4pgHfcAXdW",
-//"vHQJmVy6rgLz3AKd",
-//"chN8MVp43qXtZkbw",
-//"V18aBLM9AdQNRycP",
-//"Rk1TfYm8P3Gjh4Fb",
-//"zkmCPqZ7bTwrh6Q4",
-//"1krPAQxt74pR8wXH",
-//"rnyR3D7C4xgM2BGJ",
-//"Db4ptVaM3m9Fyjvn",
-//"9XK4CLnJjfHabqYQ",
-//"vBz6qfkWR87HN43L",
-//"LPzQxAr1bHvyZ84R",
-//"YJrQ6ydBVFHWbCnp",
-//"tRpjn3FKZD1QaWAm",
-//"2HBfqZxbYhDFaPrT",
-//"3bQmhWvtGxfVByd7",
-//"CwhXBNZ8bWRG7KMt",
-//"Hg9WbGtpRK6TP7Lw",
-//"24YD1QCbc6tqxvmw",
-//"H3MJvPDWNXwpkZ71",
-//"t4fNBCkjhzpa68Ln",
-//"CyGkfQHTpJnWBZ3h",
-//"Bk3Cb214HF8zPAwX",
-//"H1R4VdQYvC9jzfMA",
-//"2ZAr46ndbNzw1fF8",
-//"mhjPTxVDfBCtQ7cL",
-//"89HK41hDAkbRcJzd",
-//"LfRXF8QA7Phcm6jw",
-//"ktwXAb2G8pKcaYJm",
-//"NdqGytWBrvF3LfR6",
-//"wjKpa2QzXLf3DkhY",
-//"KnxNJBFGtj9gD4Cm",
-//"Y7AR8ghWkBdjxaV1",
-//"hWg3LZfq67VJtNcK",
-//"A1j6bnRfJdDpBCw8",
-//"LdfCRZ9K1tDyQTXV",
-//"pMrcZHCjfdbqVywQ",
-//"6DBCRm9JbANr4Hzn",
-//"XcMY1LkGmqJt2NDx",
-//"fvy6RCcnkFBrWd3g",
-//"Jy8aHL29bc6nVr1Y",
-//"QLJGWmtXTcKRzFyZ",
-//"twMz82gaykZpW6qX",
-//"bCnBRQ1KmFJLkGzr",
-//"tHdNkrW3m2B64pGh",
-//"rKajLT98vFyGDQtf",
-//"bhr8MDcBVnjptavA",
-//"CkqdvnwyM1QBPKmZ",
-//"jZpndRBxg87mrL1P",
-//"81vhyWYGkpVHtNqJ",
-//"tFT94pAPYDQBwnjh",
-//"HJrw7pfCbnqaZyXQ",
-//"CLj2AqgTa9JbdrxH",
-//"dM4xpLTwCn3Dz6Vj",
-//"9YNa4WwKZp1XJh8k",
-//"nwhHBmG4dyfWPqjK",
-//"CnWR3qkx9JTPbfzc",
-//"91bpRH7gYTcdAD8j",
-//"HTVx8XQ6RcGApMP3",
-//"px3YRn7Dw4X9FZkJ",
-//"P9KntmRw1f2LyjBd",
-//"Q2kbY9mjwxgvZWnC",
-//"jcrnfydamCYhtQ6D",
-//"ghXFQPj8GYm6KbyA",
-//"4hWq1HbD3z68AVNJ",
-//"bm9LpAgzD2Wa3fZ4",
-//"a7RkhPtpjXMLVTvB",
-//"Q4RhApcanmGF6jr3",
-//"nRGJNWMVDTjwhzCQ",
-//"yJGfnq43WLNBVYRg",
-//"kBRCxPMdztZ3jhwg",
-//"j3BYRbrXpnJgd8FC",
-//"2G79DBVPvpCjKLtn",
-//"x7GnY8MXmTfAzwJW",
-//"4zrGZ21FRYLbvWad",
-//"QYKq1X3gMCBajRfk",
-//"dgxmatQNWT9RnPGA",
-//"tqkMVDfaFN19cvwg",
-//"pXtrDw49ZPnQc2NM",
-//"HMQBrJ3XDaFkvzCj",
-//"RrDjJ7P8A3y1Wmbc",
-//"DQtMKq9naTzpfBYR",
-//"YaQFGRvNMnKxVrtZ",
-//"K7JmPp2RhDXfcAa1",
-//"ptGxcFjNVgH4PXh2",
-//"dzy9ABXGjhKJMaFb",
-//"mfZNtw4v1xcyG8PD",
-//"XjNTP9GaVZ7MFbR4",
-//"R1wxa8TDZNXmCrGd",
-//"TDknGbgfCtyKczjL",
-//"X8BW3ZJhYGFxfznK",
-//"7zyB23MYTKf4pwNx",
-//"Rd1v7rc2xCA9ah8L",
-//"aBbFhfqRJpTWP1cC",
-//"rC9zxYgJ4d26NbDW",
-//"41TpHBv9n7rFKq6L",
-//"Z3DctXwdgA178CkJ",
-//"hVtZjHMaWcFqx1dz",
-//"PxGkB3LHYpyF7dRm",
-//"76wG9bhjRK4gCHtF",
-//"W6fXtxdnp7MHNZam",
-//"Wz1HJrGNpCkMV3xL",
-//"YvpZC1Nky82zBPfH",
-//"At6r7CXajd9mpc8x",
-//"GLNWZR4T9rxztaQp",
-//"tY7dcALVp8wKjGnB",
-//"6fkdL3FjayCnPvZD",
-//"VYPQT4yb16CMdcNg",
-//"2mZndCMRJcx4PFjw",
-//"ZdfrTpy1JPz6YWv7",
-//"AdX7yTwhQ6WJfD2a",
-//"3AaKHg87YJWxc6FP",
-//"XdtCLZfmM2w3K6aW",
-//"H9ZqDcrtXMaxm4kw",
-//"B8xZQqG4W9a2fDgM",
-//"Zh86NDzYbtjJk17C",
-//"TrWGKf3nYDthAFPy",
-//"p1aCDTXdMhNk3rJ9",
-//"1Q8WJ7GchzCr6xtK",
-//"aN8k4Pf1Y2F6MGVQ",
-//"XYhDWNp2LqvrJHV3",
-//"7AC9B4NWXzb1k3fD",
-//"d2z7H41yphRgkBfr",
-//"1BYXCzN6Aqc79MTb",
-//"Yb3HtJxVGQy6Z4Kc",
-//"JD9KRfdrXchQnz61",
-//"L1vmgXzJr247BRyn",
-//"zHFcf9jWa1pbN7GK",
-//"X1JfYvhcQMdgTL6G",
-//"3TpCmXW9VbBnNaq8",
-//"JR1XVhWykpNbmL23",
-//"htHwvjrbfpMJW8BX",
-//"7Q3CtjVXkzgfyrNb",
-//"tCQN6k8WbBMTjGd4",
-//"gLGvHj6TVKhRDAX7",
-//"gLGvHj6TVKhRDAX7",
-//"mYpXQHtPR1x76NLd",
-//"bW3nCApDXMZaGkYy",
-//"789h4DRKGMqmjLN2",
-//"DavJw1XRcp4tgYMz",
-//"jXCTMNFhz7VpJG6L",
-//"AadDHJkbfVT8X324",
-//"Pt6h2BKzrMXDxGV4",
-//"X2GrpkfaWVNcPMCL",
-//"hX8HfdgyzR1qk9bt",
-//"ZybvXhxg4nftzakH",
-//"nGFj9m4RQfbZB2LA",
-//"fZMbXkTwBDjc8L6W",
-//"mJgbCAHfQjxRGyBq",
-//"1r7nfdFH4GyB9LcT",
-//"yZR39XHknFmLfc6T",
-//"fZNAqPDVa4pjFHTz",
-//"tpyMDrcvAz4CVbQB",
-//"4Avb1dpQWcaHhtVx",
-//"aR6jYwZvD1JXqm2n",
-//"AkRfqFgv4mZ9LNPj",
-//"vNVqC9KRFhbjZBrY",
-//"znXftLCAYZ98jbTW",
-//"kZmjdWDBVKf8LMgr",
-//"nKYL9fxXWPHhjA4z",
-//"qNJr9tXW1HQxTVRf",
-//"pJBDnHjh4XFcAw3V",
-//"gcGJf23bztnV8yPY",
-//"bKzmDGfTWptRXvYL",
-//"wC8t4RqG9yMxBdap",
-//"krhd2mTX3RPGLFHg",
-//"TfyvDmjGnwkZgbr2",
-//"KXmd6b7T1pgvVLq2",
-//"YfWLXxtJA2QD7jFB",
-//"ZPdQKgqxv6c8r3Rn",
-//"XZVptmaD9kf7hN4g",
-//"r1h2v37HjQxaXJ8g",
-//"TxjwMAzK3HLFJagv",
-//"DWncV8AMHJPK2Lzb",
-//"AXpZab2yTHRfnCKk",
-//"1VAmJR3fGLXNBpM7",
-//"8c4arPYMp6WRGjfC",
-//"qJ6kyMzVDATLCQYb",
-//"nTRZYB4DAXWcr3gN",
-//"7jZRtNqQCW9Anw8b",
-//"PhQtnyBcJj61wYk8",
-//"Gh8vNzam7Y6dJFCX",
-//"K3GQ7rfPqFhBjYLd",
-//"2pak48LqQAFvHnB3",
-//"RHBCb6G9dVTKDjvM",
-//"nqGY7jy326wbV81d",
-//"aYgCNjvqJw9npLm1",
-//"pnTZBtYyMvq7jx23",
-//"btwn6MWg17CZxzcK",
-//"DYdPJryhvHFRzVZt",
-//"xHZAtK93JrRM1yDk",
-//"1rMwNgfnK84ycRCd",
-//"t42PBp7jHMLdQcrA",
-//"n9VRv4MbZypGjz6t",
-//"nfgyGcvzTC79dQbr",
-//"wamDzfGcdhVkyLAn",
-//"TrZHqwavjkdYh94N",
-//"YWMy1P3DVjhHpR6f",
-//"4jpz9vmctxKFfDWk",
-//"Kn76RPZAhTgdCNXc",
-//"JQFb72YxVBkz4ngw",
-//"aRQNVT1vDmXYZfPd",
-//"axgWV6Tv8NCHdGPp",
-//"G6nmdk3wKPxBgYZa",
-//"m2GqCwKZcvVbQftn",
-//"yGj7AVfaTbvmx4tc",
-//"86hrXNBbKnfCLwxD",
-//"xDq39HZgyKRjMmB2",
-//"vcmbdtMKnkH23PBV",
-//"MBZbPkrxaTjdWy6h",
-//"HjA1vFDJQ8KTnczh",
-//"zH7JXbkad8BF4WnT",
-//"ZTdzaDKk1bxtpBNH",
-//"K8gvB3qxCPQnLGZD",
-//"pwPB4nvjtqRzCG8m",
-//"MkGrPybHgcCB9W2a",
-//"kXbfHanQ2MtDFLcy",
-//"1qwPdp4VhRKLMGvr",
-//"CfngtDz9yY4dk3Ha",
-//"AmGTxHwYByNgCrn8",
-//"qTnb9JW8PgRtzH7F",
-//"vTbM2Zy3BjQwzWtF",
-//"qKaR2J8FrfGbhHxt",
-//"tJQ3pKGkndDxHyXP",
-//"KYkF2NXnxafGR7Wz",
-//"KDnAdyRfbZpcTzJ9",
-//"6DBq7GZzgmpv2VHh",
-//"bpwrMGfWaxCmZ2Dq",
-//"k1w6qBpx7dYQv3zJ",
-//"6NHAXKBRhgV4rqC7",
-//"ya93PRLwVJjfY1hH",
-//"vyjAYGLB2n93w7Qq",
-//"T4LxpQAGzk2dN8P3",
-//"NwQkXbvA3zHfnJ8j",
-//"2LcVjqQwfDJ8hyrz",
-//"hmbqQKnPr4cGWZBY",
-//"tCXgmGfMLQr84Jay",
-//"8a16mD3XNQAzJ2bG",
-//"ZXVcHFzvRpDa3n4K",
-//"HXrQJd9WktjMhgn6",
-//"ZFh1NrLT2kCAR8Jg",
-//"kfHrT8MFd9pnRgLq",
-//"D2wJ7gyYh6NqGZVd",
-//"RTXdMnDHv94qY3J6",
-//"d63tZgfvwNrP8YMB",
-//"H16rFBzVCMZcRW2w",
-//"9tr1xpH6cW8PdhVL",
-//"mwVL4HP2QXvZTfFp",
-//"H2xcn1ACWgypGmv3",
-//"CYr9yXvztbcjGx8p",
-//"NLTjyPbt2fM4pCw8",
-//"Admg8k3DnF4B6JXw",
-//"dFWzp8P9xjC1bhGT",
-//"wWzbLDBQNkfyV3xm",
-//"vZLP6cakyjQ8Gn27",
-//"NAqZ4h7fHdV1naBy",
-//"VpwFMRnYzfXbhtW4",
-//"DTL3kzm8fycjqPFh",
-//"kNPdatfJx3ZbKMhq",
-//"GcYNV9QznjFCTfWh",
-//"jpL4t6mW9dD3cfC7",
-//"A6qJbaCzQd74R3Z1",
-//"TGvnH2BwXZ8pjyYJ",
-//"8AV3FGX67jpN1DTY",
-//"k829xzDygXWrQpRf",
-//"yvaA9D3NkRC6zYPm",
-//"6bjLpQ3hkWVPJAxM",
-//"WnjtNb4MJTAGqkFh",
-//"2yF4jQDYwmVvaWXC",
-//"aRwyZj1fN6hVptTz",
-//"7r9m2MqgGCfnz8Yv",
-//"3bJ69nCcW8jMQG2m",
-//"nMd2aJVtXTYZ3ykq",
-//"yKb4aP7AkfqvHpBn",
-//"gCtvBT3cVGRAn6XY",
-//"Kyz7b6xdckA3PW2F",
-//"aD8hgXB9jT2mKdNJ",
-//"ZxrJ3AhyngfMNmFC",
-//"6ytgLkafGTWcR8Hq",
-//"aQAVmrkwztG4TyjK",
-//"xQW9gbDyqtAhJ7nP",
-//"VZHaLGJxMwFBbhWz",
-//"mvx3hXwBdRVTgk2Q",
-//"LYHw2vc8JPpxCVgj",
-//"CRD2b6fzqx1gtKvQ",
-//"J7xAfkpQRXT6G81K",
-//"ftg8XZ1YCDd7Kh4v",
-//"GjAgrv8HC2n3fMkh",
-//"FDxgQHrjGABJadZ1",
-//"B1vCYnPWHcpxJ3T7",
-//"L6BXRKamQMFxDkt2",
-//"KCqz63GTbd7xYDM8",
-//"Kb1nfzHr3ygX9ZTP",
-//"63TdgCMQ4YafHhqB",
-//"Wj7xzmtfPcKZd2wV",
-//"32HR86XBnGNZwMmg",
-//"wNVa2LJ8F4zvZqKC",
-//"q9jTp76tkGWV14Jh",
-//"tR1ZzH9crG23CpPg",
-//"AdgRkm3xLvVf2T6X",
-//"jVLJwWxv6aAbCX42",
-//"TK16LkwG2hABtrnV",
-//"RDTcMn7gj21wYbPG",
-//"T8FGapKWdLrDnNt3",
-//"rkwYtCxA6pQDR38K",
-//"M7tjbyRdN6BYmzfk",
-//"TPVWmqtaK9HDpjbX",
-//"q7cZHrQVMYFzgxJ2",
-//"jt4KdcYPDpAkMxVL",
-//"x1bwkRWnQTGhzmAF",
-//"HGpj41Fb3vNhJcKk",
-//"KthXzCcM2RL3T8wH",
-//"F8jCzTBMrVQw3GK6",
-//"g6aLjKPxDhXbHJ84",
-//"PCkmLTNcM8naf93v",
-//"FMfQabY7P94DJWrj",
-//"vz7WdB2jNAxYtkRM",
-//"aYb4DKhrPFRMQydA",
-//"4wTtK3vp7qkhrBV2",
-//"FYVL9TMchjngNvA2",
-//"2rdpXtTw9gyR3KCP",
-//"dxLp7tzcFAr4JX3v",
-//"4V3WgZtxjDch6vbL",
-//"8HTYkwvLDg1ZxQMa",
-//"qkWCPABhc9XfFgKR",
-//"hH1J4QdLv8wCMNf7",
-//"MpWPdGBf3Cg9bTAK",
-//"DrQ9jaMXgmvTCq37",
-//"GWmMR68413t7xkFz",
-//"2mgTb1QwafLKZ8cP",
-//"k1YRDXHhzAP8VjJw",
-//"7y8fcAXpjtKbaVk4",
-//"KzrJT7HZmR1jt6Xg",
-//"QbDrm8kMNp6CwVa3",
-//"nbjvzwapCV3WNGMf",
-
-//            };
-//        }
+        internal Ulduar()
+        {
+            _phaseLaunchUTC = "1/19/2023 10:00 PM";
+            _raidZoneId = 603;
+            _zoneEndBosses = new List<int> { 101115, 101116, 101120, 101121, };
+        }
+
+        protected override Fight ScrubFight(Fight fight)
+        {
+            var scrubbedFight = fight;
+
+            if (scrubbedFight.boss == 744) // Flame Leviathan
+                return null;
+
+            if (fight.boss == 780 && fight.originalBoss > 0) //Razorscale + Ignis
+                scrubbedFight.boss = fight.originalBoss;
+
+            return scrubbedFight;
+        }
+
+        protected override void CapturePlayerFightTableReports(Fight scrubbedFight, Report report)
+        {
+            base.CapturePlayerFightTableReports(scrubbedFight, report);
+
+            if (scrubbedFight.boss == 0) { return; }
+
+            _playerTableReports["deaths"] = wcl.getReportTables("deaths", report.id,
+                new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                });
+
+            if (scrubbedFight.boss == 755) //Vezax
+            {
+                _playerTableReports["shadowcrash"] = wcl.getReportTables("damage-taken", report.id,
+                    new Dictionary<string, string> {
+                                        {  "start", scrubbedFight.start_time.ToString() },
+                                        {  "end", scrubbedFight.end_time.ToString() },
+                                        {  "abilityid", "62659" },
+                    });
+
+                _playerTableReports["searingflames"] = wcl.getReportTables("casts", report.id,
+                    new Dictionary<string, string> {
+                                        {  "start", scrubbedFight.start_time.ToString() },
+                                        {  "end", scrubbedFight.end_time.ToString() },
+                                        {  "hostility", "1" },
+                                        {  "abilityid", "62661" },
+                    });
+            }
+
+            if (scrubbedFight.boss == 756) //Yogg
+            {
+                _playerTableReports["shadowybarrier"] = wcl.getReportTables("buffs", report.id,
+                    new Dictionary<string, string> {
+                                        {  "start", scrubbedFight.start_time.ToString() },
+                                        {  "end", scrubbedFight.end_time.ToString() },
+                                        {  "hostility", "1" },
+                                        {  "abilityid", "63894" },
+                    });
+
+                var crusherId = report.FightsReport.enemies.FirstOrDefault(e => e.name == "Crusher Tentacle")?.id;
+                _playerTableReports["crusherdamage"] = wcl.getReportTables("damage-taken", report.id,
+                    new Dictionary<string, string> {
+                                        {  "start", scrubbedFight.start_time.ToString() },
+                                        {  "end", scrubbedFight.end_time.ToString() },
+                                        {  "options", "0" },
+                                        {  "targetid", crusherId?.ToString() },
+                    });
+            }
+        }
+
+        protected override int GetBossDamage(TableRecord fightDamage, Fight fight)
+        {
+            var bossDamage = fightDamage?.targets.Where(t => t.type == "Boss").Sum(b => b.total) ?? 0;
+
+            if (fight.boss == 749) //Kologarn
+                bossDamage += fightDamage?.targets.Where(t => t.name == "Right Arm" || t.name == "Left Arm").Sum(b => b.total) ?? 0;
+
+            if (fight.boss == 753) //Freya
+                bossDamage = fightDamage?.total ?? 0;
+
+            return bossDamage;
+        }
+
+        protected override void ProcessIssues(int friendlyFightId, int friendlyReportId, Fight scrubbedFight, Report report)
+        {
+            if (scrubbedFight.boss == 0) { return; }
+
+            var deaths = _playerTableReports["deaths"].entries.Where(e => e.id == friendlyReportId).ToList();
+            var wipe = (scrubbedFight.boss > 0 && scrubbedFight.kill == false);
+
+            switch (scrubbedFight.boss)  
+            {
+                case 757: //Algalon
+                    var darkMatterID = report.FightsReport.enemies.FirstOrDefault(e => e.name == "Dark Matter")?.id;
+
+                    foreach (var death in deaths)
+                    {
+                        if (wipe && (death.events.FirstOrDefault()?.timestamp ?? int.MaxValue) > (scrubbedFight.end_time - 20000)) { continue; }
+
+                        switch (death.killingBlow?.guid)
+                        {
+                            case 1: if (death.events.FirstOrDefault()?.sourceID == darkMatterID) { DB.saveIssue(friendlyFightId, "Death - Dark Matter Melee", 1); } break;
+                            case 64584: DB.saveIssue(friendlyFightId, "Death - Big Bang", 1); break;
+                            case 64596: DB.saveIssue(friendlyFightId, "Death - Cosmic Smash", 1); break;
+                        }
+                    }
+
+                    break;
+                case 749: //Kologarn
+                    foreach (var death in deaths)
+                    {
+                        if (wipe && (death.events.FirstOrDefault()?.timestamp ?? int.MaxValue) > (scrubbedFight.end_time - 20000)) { continue; }
+
+                        switch (death.killingBlow?.guid)
+                        {
+                            case null: DB.saveIssue(friendlyFightId, "Death - Fell off ledge", 1); break;
+                            case 63978: DB.saveIssue(friendlyFightId, "Death - Stone Nova (Rubble)", 1); break;
+                        }
+                    }
+
+                    break;
+                case 752: //Thorim
+                    foreach (var death in deaths)
+                    {
+                        if (wipe && (death.events.FirstOrDefault()?.timestamp ?? int.MaxValue) > (scrubbedFight.end_time - 20000)) { continue; }
+
+                        switch (death.killingBlow?.guid)
+                        {
+                            case 64390: DB.saveIssue(friendlyFightId, "Death - Chain Lightning", 1); break;
+                        }
+                    }
+
+                    break;
+                case 753: //Freya
+                    foreach (var death in deaths)
+                    {
+                        if (wipe && (death.events.FirstOrDefault()?.timestamp ?? int.MaxValue) > (scrubbedFight.end_time - 20000)) { continue; }
+
+                        switch (death.killingBlow?.guid)
+                        {
+                            case 1: DB.saveIssue(friendlyFightId, "Death - Melee", 1); break;
+                            case 62859: DB.saveIssue(friendlyFightId, "Death - Ground Tremor", 1); break;
+                        }
+                    }
+
+                    break;
+                case 754: //Mimi
+                    foreach (var death in deaths)
+                    {
+                        if (wipe && (death.events.FirstOrDefault()?.timestamp ?? int.MaxValue) > (scrubbedFight.end_time - 20000)) { continue; }
+
+                        switch (death.killingBlow?.guid)
+                        {
+                            case 64566: DB.saveIssue(friendlyFightId, "Death - Flames", 1); break;
+                            case 65333: DB.saveIssue(friendlyFightId, "Death - Frost Bomb", 1); break;
+                            case 63009: DB.saveIssue(friendlyFightId, "Death - Proximity Mine", 1); break;
+                            case 63041: DB.saveIssue(friendlyFightId, "Death - Rocket Strike", 1); break;
+                        }
+                    }
+
+                    break;
+                case 755: //Vezax
+                    foreach (var death in deaths)
+                    {
+                        if (wipe && (death.events.FirstOrDefault()?.timestamp ?? int.MaxValue) > (scrubbedFight.end_time - 20000)) { continue; }
+
+                        switch (death.killingBlow?.guid)
+                        {
+                            case 62659: DB.saveIssue(friendlyFightId, "Death - Shadow Crash", 1); break;
+                        }
+                    }
+
+                    var shadowcrashes = _playerTableReports["shadowcrash"].entries.FirstOrDefault(e => e.id == friendlyReportId);
+                    if (shadowcrashes != null)
+                        DB.saveIssue(friendlyFightId, "Hits - Shadow Crash", shadowcrashes.hitCount);
+
+                    var searingflames = _playerTableReports["searingflames"].entries.FirstOrDefault();
+                    var friendly = report.FightsReport.friendlies.FirstOrDefault(f => f.id == friendlyReportId);
+                    if (friendly != null && searingflames != null && friendly.type == "DeathKnight" && searingflames.hitCount > 0)
+                        DB.saveIssue(friendlyFightId, "Missed Interrupts - Searing Flames", searingflames.hitCount);
+
+                    break;
+                case 756: //Yogg
+                    var shadowybarrier = _playerTableReports["shadowybarrier"]?.auras?.FirstOrDefault()?.bands.FirstOrDefault()?.startTime;
+                    var crusherId = report.FightsReport.enemies.FirstOrDefault(e => e.name == "Crusher Tentacle")?.id;
+
+                    foreach (var death in deaths)
+                    {
+                        if (wipe && (death.events.FirstOrDefault()?.timestamp ?? int.MaxValue) > (scrubbedFight.end_time - 20000)) { continue; }
+
+                        if (shadowybarrier.HasValue)
+                        {
+                            if ((death.events.FirstOrDefault()?.timestamp ?? int.MaxValue) < shadowybarrier.Value)
+                                DB.saveIssue(friendlyFightId, "Death - Phase 1", 1);
+                        }
+
+                        if (death.events.FirstOrDefault()?.sourceID == crusherId)
+                            DB.saveIssue(friendlyFightId, "Death - Crusher Tentacle", 1);
+
+                    }
+
+                    var pets = report.FightsReport.friendlyPets.Where(f => f.petOwner == friendlyReportId).ToList();
+                    if (pets != null && pets.Count > 0)
+                    {
+                        foreach (var pet in pets)
+                        {
+                            var crusherdamage = _playerTableReports["crusherdamage"].entries.FirstOrDefault(e => e.id == pet.id);
+
+                            if (crusherdamage != null)
+                                DB.saveIssue(friendlyFightId, "Pet Damaged - Crusher Tentacle", 1);
+                        }
+                    }
+
+                    break;
+            }
+        }
+
+        internal override void ProcessNewFeatures()
+        {
+            base.ProcessNewFeatures();
+            AddKoloArmDamage();
+        }
+
+        protected void AddKoloArmDamage()
+        {
+            var reports = DB.Query(@"
+SELECT r.ID, r.code, completeRaidID = cr.ID
+FROM completeRaids cr
+JOIN reports r ON cr.reportID = r.ID
+JOIN guilds g ON r.guildID = g.ID
+JOIN weeks w ON r.StartTimeUTC >= CASE WHEN g.region = 'US' THEN w.start_US ELSE w.start_EU END AND r.StartTimeUTC < CASE WHEN g.region = 'US' THEN w.end_US ELSE w.end_EU END
+WHERE cr.ID > (SELECT lastCompleteRaidID FROM featuresImplemented WHERE feature = 'UlduarBossDamage')
+AND w.ID >= 17
+AND g.active = 1
+AND cr.ID <= 3901
+");
+
+            using (var progress = new ProgressBar())
+            {
+                var reportCounter = 0;
+                foreach (var dbReport in reports)
+                {
+                    reportCounter++;
+                    var report = new Report
+                    {
+                        id = dbReport.code,
+                        ReportID = dbReport.ID,
+                    };
+
+                    try
+                    {
+                        report.FightsReport = wcl.getReportFights(report.id);
+                    }
+                    catch (WebException ex)
+                    {
+                        if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.BadRequest)
+                            continue;
+
+                        throw ex;
+                    }
+
+                    foreach (var fight in report.FightsReport.fights)
+                    {
+                        if (fight.boss != 749) { continue; }
+
+                        TablesReport damageTable = wcl.getReportTables("damage-done", report.id,
+                        new Dictionary<string, string> {
+                                    {  "start", fight.start_time.ToString() },
+                                    {  "end", fight.end_time.ToString() },
+                        });
+
+                        foreach (var friendly in report.FightsReport.friendlies)
+                        {
+                            var friendlyID = DB.saveFriendly(friendly);
+                            var fightDamage = damageTable.entries.FirstOrDefault(e => e.guid == friendly.guid);
+                            var bossDamage = fightDamage?.targets.Where(t => t.type == "Boss").Sum(b => b.total) ?? 0;
+                            bossDamage += fightDamage?.targets.Where(t => t.name == "Right Arm" || t.name == "Left Arm").Sum(b => b.total) ?? 0;
+
+
+                            DB.Execute($@"
+UPDATE ff
+SET bossDamage = {bossDamage}
+FROM fights f
+JOIN friendlyFights ff ON f.ID = ff.fightID
+WHERE f.code = {fight.id}
+AND f.completeRaidID = {dbReport.completeRaidID}
+AND ff.friendlyID = {friendlyID}
+");
+                        }
+                    }
+
+                    DB.Execute($"UPDATE featuresImplemented SET lastCompleteRaidID = {dbReport.completeRaidID} WHERE feature = 'UlduarBossDamage'");
+                    progress.Report((double)reportCounter / reports.Count());
+                }
+            }
+        }
+
+        protected void CountAlgalonKills()
+        {
+            var results = new List<AlgalonKill>();
+
+            var guilds = DB.getGuilds();
+
+            var guildCounter = 0;
+            var processTimeStart = DateTime.Now;
+            foreach (var guild in guilds)
+            {
+                List<Report> reports = new List<Report>();
+                var processGuildStart = DateTime.Now;
+
+                guildCounter++;
+
+                try
+                {
+                    reports = wcl.getReportsGuild(guild.name, guild.server, guild.region, new Dictionary<string, string> {
+                    {  "start", GetEpochMilliseconds(DateTime.Parse(_phaseLaunchUTC)).ToString() }
+                });
+                }
+                catch (WebException ex)
+                {
+                    if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.BadRequest)
+                    {
+                        Console.WriteLine($"\rProcessing guild ({guildCounter} of {guilds.Count}) [{guild.name}] (Unable to retrieve reports) - {DateTime.Now.Subtract(processGuildStart).ToString(@"hh\:mm\:ss")} || {DateTime.Now.Subtract(processTimeStart).ToString(@"hh\:mm\:ss")}           ");
+                        continue;
+                    }
+
+                    throw ex;
+                }
+
+                var reportCounter = 0;
+                foreach (var report in reports.OrderBy(r => r.start))
+                {
+                    reportCounter++;
+                    Console.Write($"\rProcessing guild ({guildCounter} of {guilds.Count}) [{guild.name}] Report ({reportCounter} of {reports.Count}) - {DateTime.Now.Subtract(processGuildStart).ToString(@"hh\:mm\:ss")} || {DateTime.Now.Subtract(processTimeStart).ToString(@"hh\:mm\:ss")}           ");
+
+                    try
+                    {
+                        report.FightsReport = wcl.getReportFights(report.id);
+                    }
+                    catch (WebException ex)
+                    {
+                        if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.BadRequest)
+                            return;
+
+                        throw ex;
+                    }
+
+                    var algalonKills = report.FightsReport.fights.Where(f => f.boss == 757 && f.kill && f.size == 25).ToList();
+
+                    foreach (var kill in algalonKills)
+                    {
+                        var timestamp = report.start + kill.start_time;
+                        var dupCheck = results.FirstOrDefault(r => Math.Abs(r.timestamp - timestamp) < 10000 && r.Guild == guild.name && r.Server == guild.server && r.Region == guild.region);
+
+                        if (dupCheck == null)
+                        {
+                            results.Add(new AlgalonKill
+                            {
+                                Guild = guild.name,
+                                Server = guild.server,
+                                Region = guild.region,
+                                timestamp = timestamp,
+                            });
+                        }
+                    }
+                }
+                Console.WriteLine();
+            }
+
+            var weekLookup = DB.Query("SELECT * FROM weeks");
+
+            using (var resultsFile = File.CreateText("D:\\OneDrive\\Documents\\WoW Analysis\\AlgalonKills.csv"))
+            {
+                resultsFile.WriteLine($"Guild,Server,Region,DateUTC,WeekNumber");
+
+                foreach (var kill in results)
+                {
+                    var raidDate = DateTimeOffset.FromUnixTimeMilliseconds(kill.timestamp).DateTime;
+                    var weekNumberUS = weekLookup.FirstOrDefault(w => w.start_US <= raidDate && w.end_US >= raidDate)?.ID;
+                    var weekNumberEU = weekLookup.FirstOrDefault(w => w.start_EU <= raidDate && w.end_EU >= raidDate)?.ID;
+                    resultsFile.WriteLine($"{kill.Guild},{kill.Server},{kill.Region},{raidDate.ToShortDateString()},{(kill.Region == "US" ? weekNumberUS : weekNumberEU).ToString()}");
+                }
+            }
+        }
+    }
+
+    internal class AlgalonKill
+    {
+        public string Guild { get; set; }
+        public string Server { get; set; }
+        public string Region { get; set; }
+        public long timestamp { get; set; }
     }
 }

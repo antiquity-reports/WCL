@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using static Google.Apis.Sheets.v4.SheetsService;
 
@@ -97,50 +98,59 @@ namespace LogRetriever
 
         private string Get(Uri url, Dictionary<string, string> parameters)
         {
-            try
+            while (true)
             {
-                StringBuilder parameterString = new StringBuilder();
+                try
+                {
+                    StringBuilder parameterString = new StringBuilder();
 
-                if (parameters == null || parameters.Count <= 0)
-                {
-                    parameterString.Clear();
-                }
-                else
-                {
-                    parameterString.Append("?");
-                    foreach (KeyValuePair<string, string> parameter in parameters)
+                    if (parameters == null || parameters.Count <= 0)
                     {
-                        parameterString.Append(parameter.Key + "=" + parameter.Value + "&");
+                        parameterString.Clear();
                     }
-                }
-
-                url = new Uri(url + parameterString.ToString().TrimEnd(new char[] { '&' }));
-
-                HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
-                request.Method = "GET";
-                request.KeepAlive = false;
-                request.ContentType = "application/json";
-                request.ContentLength = 0;
-
-                using (HttpWebResponse response = request.GetResponse() as HttpWebResponse)
-                {
-                    if (response.StatusCode != HttpStatusCode.OK)
+                    else
                     {
-                        throw new Exception(response.StatusDescription);
+                        parameterString.Append("?");
+                        foreach (KeyValuePair<string, string> parameter in parameters)
+                        {
+                            parameterString.Append(parameter.Key + "=" + parameter.Value + "&");
+                        }
                     }
 
-                    string value;
-                    using (var reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
+                    url = new Uri(url + parameterString.ToString().TrimEnd(new char[] { '&' }));
+
+                    HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
+                    request.Method = "GET";
+                    request.KeepAlive = false;
+                    request.ContentType = "application/json";
+                    request.ContentLength = 0;
+
+                    using (HttpWebResponse response = request.GetResponse() as HttpWebResponse)
                     {
-                        value = reader.ReadToEnd();
+                        if (response.StatusCode != HttpStatusCode.OK)
+                        {
+                            throw new Exception(response.StatusDescription);
+                        }
+
+                        string value;
+                        using (var reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
+                        {
+                            value = reader.ReadToEnd();
+                        }
+                        return value;
                     }
-                    return value;
                 }
-            }
-            catch (Exception ex)
-            {
-                //no need to log here - should be handled by global and redirected accordingly
-                throw ex;
+                catch (Exception ex)
+                {
+                    if (ex.Message == "The remote server returned an error: (429) Too Many Requests.")
+                    {
+                        Thread.Sleep(60000);
+                        continue;
+                    }
+
+                    //no need to log here - should be handled by global and redirected accordingly
+                    throw ex;
+                }
             }
         }
     }
@@ -162,10 +172,10 @@ namespace LogRetriever
 
         public Report()
         {
-            FriendlyMatrix= new Dictionary<int, int>();
-            EnemyMatrix= new Dictionary<int, int>();
-            FriendlyOwnerMatrix= new Dictionary<int, int>();
-            EnemyOwnerMatrix= new Dictionary<int, int>();
+            FriendlyMatrix = new Dictionary<int, int>();
+            EnemyMatrix = new Dictionary<int, int>();
+            FriendlyOwnerMatrix = new Dictionary<int, int>();
+            EnemyOwnerMatrix = new Dictionary<int, int>();
         }
     }
 
@@ -176,6 +186,27 @@ namespace LogRetriever
         public List<TableRecord> auras { get; set; }
         public List<TableRecord> resources { get; set; }
         public List<TableRecord> gains { get; set; }
+        public PlayerSummaryReport playerDetails { get; set; }
+    }
+
+    public class PlayerSummaryReport
+    {
+        public List<PlayerSummary> healers { get; set; }
+        public List<PlayerSummary> dps { get; set; }
+        public List<PlayerSummary> tanks { get; set; }
+    }
+
+    public class PlayerSummary
+    {
+        public string name { get; set; }
+        public int guid { get; set; }
+        public int maxItemLevel { get; set; }
+        public CombatantInfo combatantInfo { get; set; }
+    }
+
+    public class CombatantInfo 
+    {
+        public List<TableRecord> gear { get; set; }
     }
 
     public class TableRecord
@@ -188,10 +219,18 @@ namespace LogRetriever
         public int total { get; set; }
         public int totalUses { get; set; }
         public int activeTime { get; set; }
+        public int slot { get; set; }
+        public int overkill { get; set; }
+        public int hitCount { get; set; }
+        public int startTime { get; set; }
+        public int endTime { get; set; }
+        public TableRecord killingBlow { get; set; }
         public List<TableRecord> specs { get; set; }
         public List<TableRecord> abilities { get; set; }
         public List<TableRecord> targets { get; set; }
         public List<TableRecord> talents { get; set; }
+        public List<Event> events { get; set; }
+        public List<TableRecord> bands { get; set; }
     }
 
     public class FightsReport
@@ -218,6 +257,7 @@ namespace LogRetriever
         public int zoneID { get; set; }
         public int originalBoss { get; set; }
         public List<int> maps { get; set; }
+        public int hardModeLevel { get; set; }
     }
 
     public class Actor

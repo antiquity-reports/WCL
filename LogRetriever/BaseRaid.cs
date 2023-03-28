@@ -6,6 +6,9 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Net;
+using System.Security.Cryptography;
+using System.Web.Hosting;
 
 namespace LogRetriever
 {
@@ -14,6 +17,7 @@ namespace LogRetriever
         protected string _phaseLaunchUTC;
         protected int _raidZoneId;
         protected List<int> _zoneEndBosses = new List<int>();
+        protected Dictionary<string, TablesReport> _playerTableReports = new Dictionary<string, TablesReport>();
         protected WCLAPI wcl = new WCLAPI();
 
         internal void GetLogs()
@@ -24,24 +28,52 @@ namespace LogRetriever
             var processTimeStart = DateTime.Now;
             foreach (var guild in guilds)
             {
+                List<Report> reports = new List<Report>();
+                var processGuildStart = DateTime.Now;
+
                 guildCounter++;
-                List<Report> reports = wcl.getReportsGuild(guild.name, guild.server, guild.region, new Dictionary<string, string> {
-                    {  "start", GetEpochMilliseconds(guild.minimumTime ?? DateTime.Parse(_phaseLaunchUTC)).ToString() }
-                });
+
+                try
+                {
+                    reports = wcl.getReportsGuild(guild.name, guild.server, guild.region, new Dictionary<string, string> {
+                        {  "start", GetEpochMilliseconds(guild.minimumTime ?? DateTime.Parse(_phaseLaunchUTC)).ToString() }
+                    });
+                }
+                catch (WebException ex)
+                {
+                    if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.BadRequest)
+                    {
+                        Console.WriteLine($"\rProcessing guild ({guildCounter} of {guilds.Count}) [{guild.name}] (Unable to retrieve reports) - {DateTime.Now.Subtract(processGuildStart).ToString(@"hh\:mm\:ss")} || {DateTime.Now.Subtract(processTimeStart).ToString(@"hh\:mm\:ss")}           ");
+                        continue;
+                    }
+
+                    throw ex;
+                }
 
                 var reportCounter = 0;
                 foreach (var report in reports.OrderBy(r => r.start))
                 {
                     reportCounter++;
-                    Console.Write($"\rProcessing guild ({guildCounter} of {guilds.Count}) [{guild.name}] Report ({reportCounter} of {reports.Count}) - {DateTime.Now.Subtract(processTimeStart).ToString(@"hh\:mm\:ss")}           ");
+                    Console.Write($"\rProcessing guild ({guildCounter} of {guilds.Count}) [{guild.name}] Report ({reportCounter} of {reports.Count}) - {DateTime.Now.Subtract(processGuildStart).ToString(@"hh\:mm\:ss")} || {DateTime.Now.Subtract(processTimeStart).ToString(@"hh\:mm\:ss")}           ");
                     ProcessReport(report, guild);
                 }
+                Console.WriteLine();
             }
         }
 
         protected void ProcessReport(Report report, dynamic guild)
         {
-            report.FightsReport = wcl.getReportFights(report.id);
+            try
+            {
+                report.FightsReport = wcl.getReportFights(report.id);
+            }
+            catch (WebException ex)
+            {
+                if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.BadRequest)
+                    return;
+
+                throw ex;
+            }
 
             if (report.FightsReport.completeRaids == null)
                 return;
@@ -81,6 +113,8 @@ namespace LogRetriever
 
             foreach (var enemyPet in report.FightsReport.enemyPets)
             {
+                if (report.EnemyMatrix.ContainsKey(enemyPet.id)) { continue; }
+
                 var enemyPetID = DB.saveEnemy(enemyPet);
                 report.EnemyMatrix.Add(enemyPet.id, enemyPetID);
 
@@ -96,6 +130,96 @@ namespace LogRetriever
         protected virtual Fight ScrubFight (Fight fight)
         {
             return fight;
+        }
+
+        protected virtual void CapturePlayerFightTableReports(Fight scrubbedFight, Report report)
+        {
+            _playerTableReports["fightDamageReport"] = wcl.getReportTables("damage-done", report.id,
+                        new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                        });
+
+            _playerTableReports["saroniteDamageReport"] =wcl.getReportTables("damage-taken", report.id,
+                new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                                    {  "hostility", "1" },
+                                    {  "by", "target" },
+                                    {  "abilityid", "56350" }, //Saronite Bomb
+                });
+
+            _playerTableReports["sapperDamageReport"] = wcl.getReportTables("damage-taken", report.id,
+                new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                                    {  "hostility", "1" },
+                                    {  "by", "target" },
+                                    {  "abilityid", "56488" }, //Global Thermal Sapper Charge
+                });
+
+            _playerTableReports["potionOfSpeedReport"] = wcl.getReportTables("buffs", report.id,
+                new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                                    {  "abilityid", "53908" }, //Speed
+                });
+
+            _playerTableReports["potionOfWildMagicReport"] = wcl.getReportTables("buffs", report.id,
+                new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                                    {  "abilityid", "53909" }, //Wild Magic
+                });
+
+            _playerTableReports["hoj"] = wcl.getReportTables("casts", report.id,
+                new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                                    {  "abilityid", "10308" }, //hammer of justice
+                });
+
+            _playerTableReports["dsac"] = wcl.getReportTables("casts", report.id,
+                new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                                    {  "abilityid", "64205" }, //divine sacrifice
+                });
+
+            _playerTableReports["am"] = wcl.getReportTables("casts", report.id,
+                new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                                    {  "abilityid", "31821" }, //aura mastery
+                });
+
+            _playerTableReports["bop"] = wcl.getReportTables("casts", report.id,
+                new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                                    {  "abilityid", "10278" }, //hand of protection
+                });
+
+            _playerTableReports["salv"] = wcl.getReportTables("casts", report.id,
+                new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                                    {  "abilityid", "1038" }, //hand of salvation
+                });
+
+            _playerTableReports["tricks"] = wcl.getReportTables("casts", report.id,
+                new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                                    {  "abilityid", "57934" }, //tricks of the trade
+                });
+
+            _playerTableReports["md"] = wcl.getReportTables("casts", report.id,
+                new Dictionary<string, string> {
+                                    {  "start", scrubbedFight.start_time.ToString() },
+                                    {  "end", scrubbedFight.end_time.ToString() },
+                                    {  "abilityid", "34477" }, //misdirection
+                });
         }
 
         protected void ProcessCompleteRaids(Report report)
@@ -123,8 +247,8 @@ namespace LogRetriever
 
                 EventsReport drumsEventsReport = wcl.getReportEvents("buffs", report.id,
                     new Dictionary<string, string> {
-                        {  "start", report.FightsReport.completeRaids[0].start_time.ToString() },
-                        {  "end", report.FightsReport.completeRaids[0].end_time.ToString() },
+                        {  "start", completeRaid.start_time.ToString() },
+                        {  "end", completeRaid.end_time.ToString() },
                         {  "abilityid", "351359" }, //Greater Drums of Speed
                     });
 
@@ -157,7 +281,7 @@ namespace LogRetriever
                 {
                     var scrubbedFight = ScrubFight(fight);
 
-                    if (scrubbedFight.zoneID != _raidZoneId ||
+                    if (scrubbedFight == null || scrubbedFight.zoneID != _raidZoneId ||
                         scrubbedFight.start_time > completeRaid.end_time)
                         continue;
 
@@ -192,67 +316,37 @@ namespace LogRetriever
                     if (_zoneEndBosses.Contains(scrubbedFight.boss))
                         currentMap = -1;
 
-                    TablesReport summaryTable = null;
-
-                    if (scrubbedFight.boss > 0)
-                        summaryTable = wcl.getReportTables("summary", report.id,
-                            new Dictionary<string, string> {
-                                        {  "start", scrubbedFight.start_time.ToString() },
-                                        {  "end", scrubbedFight.end_time.ToString() },
-                            });
-
-                    TablesReport fightDamageReport = wcl.getReportTables("damage-done", report.id,
+                    TablesReport summaryTable = wcl.getReportTables("summary", report.id,
                         new Dictionary<string, string> {
                                     {  "start", scrubbedFight.start_time.ToString() },
                                     {  "end", scrubbedFight.end_time.ToString() },
                         });
 
-                    TablesReport saroniteDamageReport = wcl.getReportTables("damage-taken", report.id,
-                        new Dictionary<string, string> {
-                                    {  "start", scrubbedFight.start_time.ToString() },
-                                    {  "end", scrubbedFight.end_time.ToString() },
-                                    {  "hostility", "1" },
-                                    {  "by", "target" },
-                                    {  "abilityid", "56350" }, //Saronite Bomb
-                        });
-
-                    TablesReport sapperDamageReport = wcl.getReportTables("damage-taken", report.id,
-                        new Dictionary<string, string> {
-                                    {  "start", scrubbedFight.start_time.ToString() },
-                                    {  "end", scrubbedFight.end_time.ToString() },
-                                    {  "hostility", "1" },
-                                    {  "by", "target" },
-                                    {  "abilityid", "56488" }, //Global Thermal Sapper Charge
-                        });
-
-                    TablesReport potionOfSpeedReport = wcl.getReportTables("buffs", report.id,
-                        new Dictionary<string, string> {
-                                    {  "start", scrubbedFight.start_time.ToString() },
-                                    {  "end", scrubbedFight.end_time.ToString() },
-                                    {  "abilityid", "53908" }, //Speed
-                        });
-
-                    TablesReport potionOfWildMagicReport = wcl.getReportTables("buffs", report.id,
-                        new Dictionary<string, string> {
-                                    {  "start", scrubbedFight.start_time.ToString() },
-                                    {  "end", scrubbedFight.end_time.ToString() },
-                                    {  "abilityid", "53909" }, //Wild Magic
-                        });
+                    CapturePlayerFightTableReports(scrubbedFight, report);
 
                     foreach (var friendly in report.FightsReport.friendlies.Where(f => f.fights.Any(i => i.id == scrubbedFight.id)))
                     {
                         var friendlyID = report.FriendlyMatrix[friendly.id];
-                        var fightDamage = fightDamageReport.entries.FirstOrDefault(e => e.guid == friendly.guid);
-                        var saroniteDamage = saroniteDamageReport.entries.FirstOrDefault(e => e.guid == friendly.guid)?.total ?? 0;
-                        var sapperDamage = sapperDamageReport.entries.FirstOrDefault(e => e.guid == friendly.guid)?.total ?? 0;
+                        var fightDamage = _playerTableReports["fightDamageReport"].entries.FirstOrDefault(e => e.guid == friendly.guid);
+                        var saroniteDamage = _playerTableReports["saroniteDamageReport"].entries.FirstOrDefault(e => e.guid == friendly.guid)?.total ?? 0;
+                        var sapperDamage = _playerTableReports["sapperDamageReport"].entries.FirstOrDefault(e => e.guid == friendly.guid)?.total ?? 0;
                         var spec = GetSpec(fightDamage, summaryTable);
+                        var ilevel = GetiLevel(summaryTable, friendly);
                         var damage = fightDamage?.total ?? 0;
-                        var bossDamage = fightDamage?.targets.Where(t => t.type == "Boss").Sum(b => b.total) ?? 0;
+                        var bossDamage = GetBossDamage(fightDamage, scrubbedFight);
                         var activeTime = fightDamage?.activeTime ?? 0;
-                        var potionsOfSpeed = potionOfSpeedReport.auras.FirstOrDefault(a => a.guid == friendly.guid)?.totalUses ?? 0;
-                        var potionsOfWildMagic = potionOfWildMagicReport.auras.FirstOrDefault(a => a.guid == friendly.guid)?.totalUses ?? 0;
+                        var potionsOfSpeed = _playerTableReports["potionOfSpeedReport"].auras.FirstOrDefault(a => a.guid == friendly.guid)?.totalUses ?? 0;
+                        var potionsOfWildMagic = _playerTableReports["potionOfWildMagicReport"].auras.FirstOrDefault(a => a.guid == friendly.guid)?.totalUses ?? 0;
                         var selfInnervates = 0;
                         var giftInnervates = 0;
+                        int hoj = 0;
+                        int dsac = 0;
+                        int am = 0;
+                        int bop = 0;
+                        int salv = 0;
+                        int tricksTank = 0;
+                        int tricksDPS = 0;
+                        int md = 0;
 
                         if (friendly.type == "Druid")
                         {
@@ -266,13 +360,71 @@ namespace LogRetriever
 
                             selfInnervates = innervates.auras.FirstOrDefault(a => a.id == friendly.id)?.totalUses ?? 0;
                             giftInnervates = innervates.auras.Sum(a => a.totalUses) - selfInnervates;
-
                         }
 
-                        DB.saveFriendlyFight(friendlyID, fightID, spec, damage, bossDamage, activeTime, potionsOfSpeed, potionsOfWildMagic, (saroniteDamage + sapperDamage), selfInnervates, giftInnervates);
+                        if (friendly.type == "Paladin")
+                        {
+                            hoj = _playerTableReports["hoj"].entries.FirstOrDefault(e => e.id == friendly.id)?.total ?? 0;
+                            dsac = _playerTableReports["dsac"].entries.FirstOrDefault(e => e.id == friendly.id)?.total ?? 0;
+                            am = _playerTableReports["am"].entries.FirstOrDefault(e => e.id == friendly.id)?.total ?? 0;
+                            bop = _playerTableReports["bop"].entries.FirstOrDefault(e => e.id == friendly.id)?.total ?? 0;
+                            salv = _playerTableReports["salv"].entries.FirstOrDefault(e => e.id == friendly.id)?.total ?? 0;
+                        }
+
+                        if (friendly.type == "Rogue")
+                        {
+                            var targets = _playerTableReports["tricks"].entries.FirstOrDefault(e => e.id == friendly.id)?.targets;
+
+                            if (targets != null)
+                            {
+                                foreach (var target in targets)
+                                {
+                                    if (summaryTable.playerDetails.tanks?.Any(p => p.name == target.name) ?? false)
+                                        tricksTank += target.total;
+                                    else
+                                        tricksDPS += target.total;
+                                }
+                            }
+                        }
+
+                        if (friendly.type == "Hunter")
+                        {
+                            md = _playerTableReports["md"].entries.FirstOrDefault(e => e.id == friendly.id)?.total ?? 0;
+                        }
+
+                        var friendlyFightID = DB.saveFriendlyFight(friendlyID, fightID, spec, damage, bossDamage, activeTime, potionsOfSpeed, potionsOfWildMagic, (saroniteDamage + sapperDamage), selfInnervates, giftInnervates,
+                            hoj, dsac, am, bop, salv, tricksTank, tricksDPS, md, ilevel);
+
+                        ProcessIssues(friendlyFightID, friendly.id, scrubbedFight, report);
                     }
                 }
             }
+        }
+
+        protected virtual void ProcessIssues(int friendlyFightId, int friendlyReportId, Fight scrubbedFight, Report report)
+        {
+
+        }
+
+        protected virtual int GetBossDamage(TableRecord fightDamage, Fight fight)
+        {
+            return fightDamage?.targets.Where(t => t.type == "Boss").Sum(b => b.total) ?? 0;
+        }
+
+        protected static int? GetiLevel(TablesReport summary, Actor friendly)
+        {
+            if (summary == null || friendly == null)
+                return null;
+
+            var playerDetails = summary.playerDetails.tanks?.FirstOrDefault(p => p.guid == friendly.guid);
+
+            if (playerDetails == null)
+                playerDetails = summary.playerDetails.healers?.FirstOrDefault(p => p.guid == friendly.guid);
+
+            if (playerDetails == null)
+                playerDetails = summary.playerDetails.dps?.FirstOrDefault(p => p.guid == friendly.guid);
+
+            return playerDetails?.maxItemLevel;
         }
 
         protected static string GetSpec(TableRecord entry, TablesReport summary)
@@ -311,9 +463,83 @@ namespace LogRetriever
             return (date - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
         }
 
-        internal void ProcessNewFeatures()
+        internal virtual void ProcessNewFeatures()
         {
-            AddDrums();
+            
+        }
+
+        
+
+        protected void AddIlevel()
+        {
+            var reports = DB.Query(@"
+SELECT r.ID, r.code, completeRaidID = cr.ID
+FROM completeRaids cr
+JOIN reports r ON cr.reportID = r.ID
+JOIN guilds g ON r.guildID = g.ID
+JOIN weeks w ON r.StartTimeUTC >= CASE WHEN g.region = 'US' THEN w.start_US ELSE w.start_EU END AND r.StartTimeUTC < CASE WHEN g.region = 'US' THEN w.end_US ELSE w.end_EU END
+WHERE cr.ID > (SELECT lastCompleteRaidID FROM featuresImplemented WHERE feature = 'iLevel')
+AND (g.name = 'Antiquity')
+AND w.ID >= 17
+");
+
+            using (var progress = new ProgressBar())
+            {
+                var reportCounter = 0;
+                foreach (var dbReport in reports)
+                {
+                    reportCounter++;
+                    var report = new Report
+                    {
+                        id = dbReport.code,
+                        ReportID = dbReport.ID,
+                    };
+
+                    try
+                    {
+                        report.FightsReport = wcl.getReportFights(report.id);
+                    }
+                    catch (WebException ex)
+                    {
+                        if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.BadRequest)
+                            continue;
+
+                        throw ex;
+                    }
+
+                    foreach (var fight in report.FightsReport.fights)
+                    {
+                        if (fight.boss == 0) { continue; }
+
+                        TablesReport summaryTable = wcl.getReportTables("summary", report.id,
+                        new Dictionary<string, string> {
+                                    {  "start", fight.start_time.ToString() },
+                                    {  "end", fight.end_time.ToString() },
+                        });
+
+                        foreach (var friendly in report.FightsReport.friendlies)
+                        {
+                            var friendlyID = DB.saveFriendly(friendly);
+                            var ilevel = GetiLevel(summaryTable, friendly);
+
+                            if (!ilevel.HasValue) { continue; }
+
+                            DB.Execute($@"
+UPDATE ff
+SET ilevel = {ilevel.Value}
+FROM fights f
+JOIN friendlyFights ff ON f.ID = ff.fightID
+WHERE f.code = {fight.id}
+AND f.completeRaidID = {dbReport.completeRaidID}
+AND ff.friendlyID = {friendlyID}
+");
+                        }
+                    }
+
+                    DB.Execute($"UPDATE featuresImplemented SET lastCompleteRaidID = {dbReport.completeRaidID} WHERE feature = 'iLevel'");
+                    progress.Report((double)reportCounter / reports.Count());
+                }
+            }
         }
 
         protected void AddDrums()
@@ -326,9 +552,11 @@ FROM completeRaids cr
 JOIN reports r ON cr.reportID = r.ID
 JOIN guilds g ON r.guildID = g.ID
 JOIN weeks w ON r.StartTimeUTC >= CASE WHEN g.region = 'US' THEN w.start_US ELSE w.start_EU END AND r.StartTimeUTC < CASE WHEN g.region = 'US' THEN w.end_US ELSE w.end_EU END
-WHERE cr.ID <= 2506
+OUTER APPLY (SELECT DrumsCount = COUNT(1) FROM friendlyCompleteRaids WHERE completeRaidID = cr.ID) co
+WHERE cr.ID <= 2711
 AND cr.ID > (SELECT lastCompleteRaidID FROM featuresImplemented WHERE feature = 'Drums')
 AND (g.name = 'Antiquity' OR w.ID > 9)
+AND ISNULL(DrumsCount, 0) = 0
 ");
             
             using (var progress = new ProgressBar())
@@ -343,7 +571,17 @@ AND (g.name = 'Antiquity' OR w.ID > 9)
                         ReportID = dbReport.ID,
                     };
 
-                    report.FightsReport = wcl.getReportFights(report.id);
+                    try
+                    {
+                        report.FightsReport = wcl.getReportFights(report.id);
+                    }
+                    catch (WebException ex)
+                    {
+                        if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.BadRequest)
+                            continue;
+
+                        throw ex;
+                    }
 
                     foreach (var friendly in report.FightsReport.friendlies)
                     {

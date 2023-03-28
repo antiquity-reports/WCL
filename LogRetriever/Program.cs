@@ -6,6 +6,7 @@ using System.Data.SqlClient;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -19,7 +20,7 @@ namespace LogRetriever
         {
             while (true)
             {
-                var raid = new Naxx();
+                var raid = new Ulduar();
                 try
                 {
                     raid.ProcessNewFeatures();
@@ -35,7 +36,7 @@ namespace LogRetriever
             var lastCompletedRaidID = DB.getLastCompletedRaidID();
             while (true)
             {
-                var raid = new Naxx();
+                var raid = new Ulduar();
                 try
                 {
                     raid.GetLogs();
@@ -58,6 +59,5 @@ namespace LogRetriever
 
             Publisher.PublishWeeklyRaidPerformance();
         }
-
     }
 }

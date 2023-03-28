@@ -23,16 +23,21 @@ SELECT
 	g.name,
 	g.server,
 	g.region,
-    t.minimumTime
+    t.minimumTime,
+	g.active
 FROM guilds g
 LEFT JOIN (SELECT region = 'US', minimumTime = MIN(start_US)
-FROM weeks WHERE start_us > DATEADD(WEEK, -5, GETDATE())
+FROM weeks 
+WHERE start_us > DATEADD(WEEK, -5, GETDATE())
 UNION
 SELECT region = 'EU', minimumTime = MIN(start_eu)
-FROM weeks WHERE start_eu > DATEADD(WEEK, -5, GETDATE())
+FROM weeks 
+WHERE start_eu > DATEADD(WEEK, -5, GETDATE())
 UNION
-SELECT region = 'CN', minimumTime = MIN(start_eu)
-FROM weeks WHERE start_eu > DATEADD(WEEK, -5, GETDATE())) t ON g.region = t.region
+SELECT region = 'TW', minimumTime = MIN(start_eu)
+FROM weeks 
+WHERE start_eu > DATEADD(WEEK, -5, GETDATE())) t ON g.region = t.region
+WHERE g.active = 1
 ORDER BY g.region DESC, g.name
 ").ToList();
             }
@@ -105,7 +110,8 @@ VALUES (@guid, @name, @type)
             }
         }
 
-        internal static void saveFriendlyFight(int friendlyID, int fightID, string spec, int damage, int bossDamage, int activeTime, int potionsOfSpeed, int potionsOfWildMagic, int engineeringDamage, int selfInnervates, int giftInnervates)
+        internal static int saveFriendlyFight(int friendlyID, int fightID, string spec, int damage, int bossDamage, int activeTime, int potionsOfSpeed, int potionsOfWildMagic, int engineeringDamage, int selfInnervates, int giftInnervates,
+            int hoj, int dsac, int am, int bop, int salv, int tricksTank, int tricksDPS, int md, int? ilevel)
         {
             using (var connection = new SqlConnection(CONNECTION_STRING))
             {
@@ -122,11 +128,21 @@ VALUES (@guid, @name, @type)
                     engineeringDamage,
                     selfInnervates,
                     giftInnervates,
+                    hoj,
+                    dsac,
+                    am,
+                    bop,
+                    salv,
+                    tricksTank,
+                    tricksDPS,
+                    md,
+                    ilevel
                 };
 
-                connection.Execute(@"
-INSERT friendlyFights (friendlyID, fightID, spec, damage, bossDamage, activeTime, potionsOfSpeed, potionsOfWildMagic, engineeringDamage, selfInnervates, giftInnervates)
-VALUES (@friendlyID, @fightID, @spec, @damage, @bossDamage, @activeTime, @potionsOfSpeed, @potionsOfWildMagic, @engineeringDamage, @selfInnervates, @giftInnervates)
+                return connection.QuerySingle <int>(@"
+INSERT friendlyFights (friendlyID, fightID, spec, damage, bossDamage, activeTime, potionsOfSpeed, potionsOfWildMagic, engineeringDamage, selfInnervates, giftInnervates, hoj, dsac, am, bop, salv, tricksTank, tricksDPS, md, ilevel)
+OUTPUT INSERTED.ID
+VALUES (@friendlyID, @fightID, @spec, @damage, @bossDamage, @activeTime, @potionsOfSpeed, @potionsOfWildMagic, @engineeringDamage, @selfInnervates, @giftInnervates, @hoj, @dsac, @am, @bop, @salv, @tricksTank, @tricksDPS, @md, @ilevel)
 
 IF (@spec != null)
 BEGIN
@@ -255,12 +271,13 @@ VALUES (@name, @fightBossID, @fightLocationID, @sequence, @start_time, @end_time
                     fight.end_time,
                     completeRaidID,
                     code = fight.id,
+                    killed = fight.kill
                 };
 
                 return connection.QuerySingle<int>(@"
-INSERT fights (name, fightBossID, fightLocationID, sequence, start_time, end_time, completeRaidID, code)
+INSERT fights (name, fightBossID, fightLocationID, sequence, start_time, end_time, completeRaidID, code, killed)
 OUTPUT INSERTED.ID
-VALUES (@name, @fightBossID, @fightLocationID, @sequence, @start_time, @end_time, @completeRaidID, @code)
+VALUES (@name, @fightBossID, @fightLocationID, @sequence, @start_time, @end_time, @completeRaidID, @code, @killed)
 ", param);
             }
         }
@@ -300,6 +317,25 @@ VALUES (@friendlyID, @completeRaidID, @drumsCount)
             }
         }
 
+        internal static int saveIssue(int friendlyFightId, string issue, int value)
+        {
+            using (var connection = new SqlConnection(CONNECTION_STRING))
+            {
+                var param = new
+                {
+                    friendlyFightId,
+                    issue,
+                    value,
+                };
+
+                return connection.QuerySingle<int>(@"
+INSERT issues (friendlyFightId, issue, value)
+OUTPUT INSERTED.ID
+VALUES (@friendlyFightId, @issue, @value)
+", param);
+            }
+        }
+
         internal static int getLastCompletedRaidID()
         {
             using (var connection = new SqlConnection(CONNECTION_STRING))
@@ -320,6 +356,7 @@ VALUES (@friendlyID, @completeRaidID, @drumsCount)
                 connection.Execute(@"
 DECLARE @reportID INT = (SELECT reportID FROM completeRaids WHERE ID = @completeRaidID)
 
+DELETE i FROM issues i JOIN friendlyFights ff ON i.friendlyFightID = ff.ID JOIN fights f ON ff.fightID = f.ID WHERE f.completeRaidID = @completeRaidID
 DELETE ff FROM friendlyFights ff JOIN fights f ON ff.fightID = f.ID WHERE f.completeRaidID = @completeRaidID
 DELETE FROM fights WHERE completeRaidID = @completeRaidID
 DELETE FROM friendlyCompleteRaids WHERE completeRaidID = @completeRaidID
@@ -329,7 +366,7 @@ DELETE FROM reports WHERE ID = @reportID
             }
         }
 
-        internal static List<IDictionary<string, object>> getWeeklyRaidPerformance()
+        internal static IList<IDictionary<string, object>> getWeeklyRaidPerformance()
         {
             using (var connection = new SqlConnection(CONNECTION_STRING))
             {
@@ -337,11 +374,11 @@ DELETE FROM reports WHERE ID = @reportID
             }
         }
 
-        internal static dynamic Query(string sql)
+        internal static IList<dynamic> Query(string sql)
         {
             using (var connection = new SqlConnection(CONNECTION_STRING))
             {
-                return connection.Query(sql);
+                return connection.Query(sql).ToList();
             }
         }
 
