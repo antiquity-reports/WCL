@@ -50,7 +50,7 @@ namespace LogRetriever
             var valueRange = new ValueRange { Values = values, Range = range };
             var body = new BatchUpdateValuesRequest { Data = new List<ValueRange> { valueRange } , ValueInputOption = "RAW" };
             var updateRequest = service.Spreadsheets.Values.BatchUpdate(body, sheetId);
-            var updateResponse = updateRequest.Execute();
+            updateRequest.Execute();
         }
 
         static string GetColumnName(int index)

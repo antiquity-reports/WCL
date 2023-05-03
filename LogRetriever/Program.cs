@@ -58,6 +58,7 @@ namespace LogRetriever
             }
 
             Publisher.PublishWeeklyRaidPerformance();
+            Publisher.PublishIssues();
         }
     }
 }

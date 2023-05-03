@@ -374,6 +374,14 @@ DELETE FROM reports WHERE ID = @reportID
             }
         }
 
+        internal static IList<IDictionary<string, object>> getIssues()
+        {
+            using (var connection = new SqlConnection(CONNECTION_STRING))
+            {
+                return connection.Query("SELECT * FROM IssuesReport").Select(x => (IDictionary<string, object>)x).ToList();
+            }
+        }
+
         internal static IList<dynamic> Query(string sql)
         {
             using (var connection = new SqlConnection(CONNECTION_STRING))
@@ -387,6 +395,33 @@ DELETE FROM reports WHERE ID = @reportID
             using (var connection = new SqlConnection(CONNECTION_STRING))
             {
                 return connection.Execute(sql);
+            }
+        }
+
+        internal static IList<IDictionary<string, object>> getSpeedDPS(int weekNumber)
+        {
+            using (var connection = new SqlConnection(CONNECTION_STRING))
+            {
+                return connection.Query(@"
+SELECT
+	CharClass,
+	CharSpec,
+	CharName,
+	Duration = CONVERT(VARCHAR, DATEADD(SECOND, duration / 1000.0, '2022-01-01'), 8),
+	OverallDPS = TotalDamage / (FightDuration / 1000),
+	BossDPS = BossDamage / (BossDuration / 1000),
+	EngiDPS = EngineeringDamage / (FightDuration / 1000),
+	ActivePct = ActiveTime / (FightDuration*1.0),
+	PotionsOfSpeed,
+	PotionsOfWildMagic,
+	DrumsCount,
+	Issues,
+	iLevel
+FROM WeeklyRaidPerformance
+WHERE WeekNumber = @weekNumber
+AND Guild = 'Antiquity'
+ORDER BY TotalDamage / (FightDuration / 1000) DESC
+", new { weekNumber }).Select(x => (IDictionary<string, object>)x).ToList();
             }
         }
     }
